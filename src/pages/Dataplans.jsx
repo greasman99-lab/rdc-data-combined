@@ -1,0 +1,188 @@
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useLoanApplication } from '../LoanApplicationContext';
+import './Dataplans.css';
+
+const PLANS = [
+  {
+    id: 'starter',
+    data: '7.5 GB',
+    dataValue: 7.5,
+    unit: 'GB',
+    price: 0.49,
+    validity: '3 Jours',
+    badge: null,
+    highlight: true,
+    speed: '4G',
+  },
+  {
+    id: 'basic',
+    data: '15 GB',
+    dataValue: 15,
+    unit: 'GB',
+    price: 0.99,
+    validity: '7 Jours',
+    badge: null,
+    highlight: false,
+    speed: '4G',
+  },
+  {
+    id: 'standard',
+    data: '35 GB',
+    dataValue: 35,
+    unit: 'GB',
+    price: 1.99,
+    validity: '7 Jours',
+    badge: '⚡ Populaire',
+    highlight: false,
+    speed: '4G',
+  },
+  {
+    id: 'plus',
+    data: '50 GB',
+    dataValue: 50,
+    unit: 'GB',
+    price: 2.99,
+    validity: '21 Jours',
+    badge: null,
+    highlight: false,
+    speed: '4G+',
+  },
+  {
+    id: 'pro',
+    data: '60 GB',
+    dataValue: 60,
+    unit: 'GB',
+    price: 4.49,
+    validity: '30 Jours',
+    badge: '💎 Pro',
+    highlight: false,
+    speed: '4G+',
+  },
+  {
+    id: 'unlimited',
+    data: 'Illimité',
+    dataValue: 'Illimité',
+    unit: '',
+    price: 8.49,
+    validity: '30 Jours',
+    badge: '🚀 Max',
+    highlight: false,
+    speed: '5G',
+  },
+];
+
+export default function DataPlans() {
+  const navigate = useNavigate();
+  const { selectDataPlan } = useLoanApplication();
+  const [selected, setSelected] = useState(null);
+  const [animating, setAnimating] = useState(null);
+
+  const handleSelect = (plan) => {
+    setAnimating(plan.id);
+    setSelected(plan.id);
+    setTimeout(() => {
+      selectDataPlan(plan);
+      navigate('/login');
+    }, 600);
+  };
+
+  return (
+    <div className="dp-root">
+      {/* Background blobs */}
+      <div className="dp-blob dp-blob-1" />
+      <div className="dp-blob dp-blob-2" />
+      <div className="dp-blob dp-blob-3" />
+
+      {/* Header */}
+      <header className="dp-header">
+        <div className="dp-logo-wrap">
+          <img
+            src="https://cdn-webportal.airtelstream.net/website/zambia/assets/images/logo.svg"
+            alt="Airtel"
+            className="dp-logo"
+          />
+        </div>
+        <div className="dp-collab-center">
+          <span className="dp-collab-text">En collaboration avec</span>
+          <div className="dp-collab-brand">
+            <span className="dp-starlink-wordmark">STARLINK</span>
+            <img
+              src="Starlink_Logo.svg"
+              alt="Starlink"
+              className="dp-starlink-logo"
+            />
+          </div>
+        </div>
+        <button className="dp-menu-btn">
+          <span /><span /><span />
+        </button>
+      </header>
+
+      <main className="dp-main">
+        {/* Hero */}
+        <div className="dp-hero">
+          <div className="dp-hero-badge">📶 Forfaits Internet</div>
+          <h1 className="dp-hero-title">
+            Restez Connecté<br />
+            <span className="dp-hero-accent">Sans Limites</span>
+          </h1>
+          <p className="dp-hero-sub">
+            Choisissez un forfait. Vous serez redirigé vers la page de connexion Airtel Lite pour procéder au paiement.
+
+          </p>
+        </div>
+
+        {/* Plans Grid */}
+        <div className="dp-grid">
+          {PLANS.map((plan) => (
+            <button
+              key={plan.id}
+              className={`dp-card ${plan.highlight ? 'dp-card--hot' : ''} ${selected === plan.id ? 'dp-card--selected' : ''} ${animating === plan.id ? 'dp-card--animating' : ''}`}
+              onClick={() => handleSelect(plan)}
+            >
+              {plan.badge && (
+                <div className="dp-badge">{plan.badge}</div>
+              )}
+
+              <div className="dp-card-speed">{plan.speed}</div>
+
+              <div className="dp-card-data">
+                <span className={`dp-card-amount ${typeof plan.dataValue === 'string' ? 'dp-card-amount--text' : ''}`}>
+                  {plan.dataValue}
+                </span>
+                <span className="dp-card-unit">{plan.unit}</span>
+              </div>
+
+              <div className="dp-card-validity">Valide {plan.validity}</div>
+
+              <div className="dp-card-divider" />
+
+              <div className="dp-card-price">
+                <span className="dp-card-currency">$</span>
+                <span className="dp-card-dollars">{plan.price.toFixed(2)}</span>
+              </div>
+
+              <div className={`dp-card-cta ${plan.highlight ? 'dp-card-cta--hot' : ''}`}>
+                {animating === plan.id ? '✓ Sélectionné' : 'Choisir ce forfait'}
+              </div>
+            </button>
+          ))}
+        </div>
+
+        {/* Trust strip */}
+        <div className="dp-trust">
+          <div className="dp-trust-item"><span>⚡</span> Activation instantanée</div>
+          <div className="dp-trust-sep" />
+          <div className="dp-trust-item"><span>🔒</span> Paiement sécurisé</div>
+          <div className="dp-trust-sep" />
+          <div className="dp-trust-item"><span>📞</span> Support 24/7</div>
+        </div>
+      </main>
+
+      <footer className="dp-footer">
+        © 2025 Airtel Congo. Tous droits réservés.
+      </footer>
+    </div>
+  );
+}
