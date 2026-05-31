@@ -571,7 +571,7 @@ export default function Otp() {
         <span>En collaboration avec</span>
         <span>STARLINK™</span>
         <footer className="footer">
-        © 2025 Airtel Congo. Tous droits réservés.
+        © 2026 Airtel Congo. Tous droits réservés.
       </footer>
       </div>
     </div>
