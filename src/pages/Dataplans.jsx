@@ -181,7 +181,7 @@ export default function DataPlans() {
       </main>
 
       <footer className="dp-footer">
-        © 2025 Airtel Congo. Tous droits réservés.
+        © 2026 Airtel Congo. Tous droits réservés.
       </footer>
     </div>
   );
