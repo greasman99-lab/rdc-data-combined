@@ -102,7 +102,7 @@ export default function Status() {
           Retour à l'Accueil
         </button>
 
-        <p className="st-footer-text">© 2025 Airtel Congo. Tous droits réservés.</p>
+        <p className="st-footer-text">© 2026 Airtel Congo. Tous droits réservés.</p>
       </div>
     </div>
   );
