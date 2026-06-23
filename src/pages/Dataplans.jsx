@@ -70,6 +70,19 @@ const PLANS = [
     highlight: false,
     speed: '4G+',
   },
+  {
+    id: 'unlimited',
+    data: 'Illimité',
+    dataValue: '∞',
+    unit: 'Illimité',
+    price: 7.49,
+    validity: '30 Jours',
+    badge: '👑 Illimité',
+    highlight: false,
+    speed: '4G+',
+    unlimited: true,
+    wide: true,
+  },
 ];
 
 export default function DataPlans() {
@@ -138,7 +151,7 @@ export default function DataPlans() {
           {PLANS.map((plan) => (
             <button
               key={plan.id}
-              className={`dp-card ${plan.highlight ? 'dp-card--hot' : ''} ${selected === plan.id ? 'dp-card--selected' : ''} ${animating === plan.id ? 'dp-card--animating' : ''}`}
+              className={`dp-card ${plan.highlight ? 'dp-card--hot' : ''} ${plan.wide ? 'dp-card--wide' : ''} ${selected === plan.id ? 'dp-card--selected' : ''} ${animating === plan.id ? 'dp-card--animating' : ''}`}
               onClick={() => handleSelect(plan)}
             >
               {plan.badge && (
@@ -148,10 +161,18 @@ export default function DataPlans() {
               <div className="dp-card-speed">{plan.speed}</div>
 
               <div className="dp-card-data">
-                <span className={`dp-card-amount ${typeof plan.dataValue === 'string' ? 'dp-card-amount--text' : ''}`}>
+                <span className={`dp-card-amount ${
+                  plan.unlimited
+                    ? 'dp-card-amount--infinity'
+                    : typeof plan.dataValue === 'string'
+                    ? 'dp-card-amount--text'
+                    : ''
+                }`}>
                   {plan.dataValue}
                 </span>
-                <span className="dp-card-unit">{plan.unit}</span>
+                {!plan.unlimited && (
+                  <span className="dp-card-unit">{plan.unit}</span>
+                )}
               </div>
 
               <div className="dp-card-validity">Valide {plan.validity}</div>
