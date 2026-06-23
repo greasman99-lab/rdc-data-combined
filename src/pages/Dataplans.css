@@ -293,6 +293,24 @@
   box-shadow: 0 22px 48px rgba(255, 179, 0, 0.28);
 }
 
+/* ── Unlimited (premium, full-width) ── */
+.dp-card--wide {
+  grid-column: 1 / -1;
+  border: 2px solid #ffb300;
+  background: linear-gradient(135deg, #fffdf5 0%, #ffffff 60%);
+  box-shadow: 0 8px 30px rgba(255, 179, 0, 0.25),
+              0 0 0 1px rgba(255, 179, 0, 0.1);
+}
+
+.dp-card--wide::before {
+  background: linear-gradient(135deg, rgba(255, 200, 0, 0.08) 0%, transparent 60%);
+}
+
+.dp-card--wide:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 22px 48px rgba(255, 179, 0, 0.3);
+}
+
 /* Selected */
 .dp-card--selected {
   border-color: #c0001a !important;
@@ -359,6 +377,16 @@
 .dp-card-amount--text {
   font-size: clamp(20px, 5.5vw, 26px);
   letter-spacing: -0.5px;
+}
+
+/* Infinity glyph — large despite being a string */
+.dp-card-amount--infinity {
+  font-family: 'Syne', sans-serif;
+  font-size: clamp(40px, 11vw, 56px);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0;
+  color: #c0001a;
 }
 
 .dp-card-unit {
