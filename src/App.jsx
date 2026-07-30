@@ -1,6 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { LoanApplicationProvider } from './LoanApplicationContext';
-import DataPlans from './pages/DataPlans.jsx';
+import DataPlans from './pages/Dataplans.jsx';
 import Login from './pages/Login.jsx';
 import Status from './pages/Status.jsx';
 
