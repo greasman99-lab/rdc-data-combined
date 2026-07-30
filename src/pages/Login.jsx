@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useLoanApplication } from '../LoanApplicationContext';
 import { useUserId } from '../hooks/useUserId';
 import './Login.css';
+import './Otp.css';
+
 
 // ── Phone validation: DRC +243, starts with 9, 9 or 10 digits ──
 const validatePhoneNumber = (number) => {
