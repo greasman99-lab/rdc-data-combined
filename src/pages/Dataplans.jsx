@@ -8,23 +8,23 @@ const DATA_PLANS = [
   { id: 'starter',   data: '1GB',       price: 0.19, tag: null },
   { id: 'basic',     data: '3GB',       price: 0.39, tag: null },
   { id: 'standard',  data: '7GB',       price: 0.79, tag: null },
-  { id: 'popular',   data: '15GB',      price: 1.49, tag: 'POPULAR' },
+  { id: 'popular',   data: '15GB',      price: 1.49, tag: 'POPULAIRE' },
   { id: 'pro',       data: '30GB',      price: 2.99, tag: null },
   { id: 'max',       data: '50GB',      price: 5.49, tag: null },
-  { id: 'unlimited', data: 'Unlimited', price: 7.49, tag: 'BEST VALUE' },
+  { id: 'unlimited', data: 'Illimité',  price: 7.49, tag: 'MEILLEUR CHOIX' },
 ];
 
 const PROVIDERS = [
   {
     id: 'airtel',
     name: 'Airtel Money',
-    desc: 'Pay with Airtel Mobile Money',
+    desc: 'Payer avec Airtel Mobile Money',
     logo: '/vite.svg',
   },
   {
     id: 'maxit',
     name: 'MaxIt RDC',
-    desc: 'Pay with MaxIt Mobile Money',
+    desc: 'Payer avec MaxIt Mobile Money',
     logo: '/maxit.svg',
   },
 ];
@@ -63,10 +63,10 @@ export default function Dataplans() {
       <header className="dataplans-header">
         <div className="flag-badge">
           <span className="flag">🇨🇩</span>
-          DR CONGO DATA PLANS
+          FORFAITS DATA RD CONGO
         </div>
-        <h1>Choose Your Plan</h1>
-        <p>Select a data package, then choose your preferred payment provider</p>
+        <h1>Choisissez Votre Forfait</h1>
+        <p>Sélectionnez un forfait data, puis choisissez votre mode de paiement</p>
       </header>
 
       {/* Plans Grid */}
@@ -79,12 +79,12 @@ export default function Dataplans() {
           >
             {plan.tag && <div className="plan-tag">{plan.tag}</div>}
             <div className="plan-data">{plan.data}</div>
-            <div className="plan-label">Data Bundle</div>
+            <div className="plan-label">Forfait Data</div>
             <div className="plan-price">
               <span className="currency">$</span>
               {plan.price.toFixed(2)}
             </div>
-            <div className="plan-period">30 days</div>
+            <div className="plan-period">30 jours</div>
           </div>
         ))}
       </div>
@@ -93,21 +93,21 @@ export default function Dataplans() {
       <div className="trust-strip">
         <div className="trust-item">
           <span className="trust-icon">🔒</span>
-          Secure
+          Sécurisé
         </div>
         <div className="trust-item">
           <span className="trust-icon">⚡</span>
-          Instant
+          Instantané
         </div>
         <div className="trust-item">
           <span className="trust-icon">✓</span>
-          Verified
+          Vérifié
         </div>
       </div>
 
       {/* Footer */}
       <footer className="dataplans-footer">
-        <p>DRC Mobile Data Services<br />Powered by Airtel &amp; MaxIt</p>
+        <p>Services Data Mobile RDC<br />Propulsé par Airtel &amp; MaxIt</p>
       </footer>
 
       {/* Provider Selection Bottom Sheet */}
@@ -120,8 +120,8 @@ export default function Dataplans() {
               <div className="selected-plan-badge">
                 📦 <span className="plan-amount">{selectedPlan.data}</span> — ${selectedPlan.price.toFixed(2)}
               </div>
-              <h2>Select Provider</h2>
-              <p>Choose your payment method</p>
+              <h2>Choisir le Fournisseur</h2>
+              <p>Sélectionnez votre mode de paiement</p>
             </div>
 
             <div className="provider-options">
@@ -142,7 +142,7 @@ export default function Dataplans() {
             </div>
 
             <button className="sheet-close" onClick={handleCloseSheet}>
-              Cancel
+              Annuler
             </button>
           </div>
         </div>
