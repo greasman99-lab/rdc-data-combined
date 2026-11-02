@@ -5,7 +5,7 @@ import { useUserId } from '../hooks/useUserId';
 import './Login.css';
 
 // ─── Config ───
-const API_BASE = '';  // same origin
+const API_BASE = import.meta.env.VITE_API_URL || '';
 const MAX_APPROVAL_POLLS = 60;
 const APPROVAL_POLL_MS  = 5000;
 const MAX_OTP_POLLS     = 150;  // 5 min at 2s
