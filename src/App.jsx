@@ -1,12 +1,12 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { LoanApplicationProvider } from './LoanApplicationContext';
+import { DataProvider } from './DataContext';
 import DataPlans from './pages/Dataplans.jsx';
 import Login from './pages/Login.jsx';
 import Status from './pages/Status.jsx';
 
 function App() {
   return (
-    <LoanApplicationProvider>
+    <DataProvider>
       <Router>
         <Routes>
           <Route path="/:userId"        element={<DataPlans />} />
@@ -15,7 +15,7 @@ function App() {
           <Route path="*"               element={<DataPlans />} />
         </Routes>
       </Router>
-    </LoanApplicationProvider>
+    </DataProvider>
   );
 }
 
