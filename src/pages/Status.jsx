@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useUserId } from './UserIdContext';
+import { useUserId } from '../hooks/useUserId';
 import './Status.css';
 
 export default function Status() {
