@@ -19,13 +19,13 @@ const PROVIDERS = [
     id: 'airtel',
     name: 'Airtel Money',
     desc: 'Pay with Airtel Mobile Money',
-    icon: 'A',
+    logo: '/vite.svg',
   },
   {
     id: 'maxit',
     name: 'MaxIt RDC',
     desc: 'Pay with MaxIt Mobile Money',
-    icon: 'M',
+    logo: '/maxit.svg',
   },
 ];
 
@@ -131,7 +131,7 @@ export default function Dataplans() {
                   className={`provider-card ${provider.id}`}
                   onClick={() => handleProviderSelect(provider)}
                 >
-                  <div className="provider-icon">{provider.icon}</div>
+                  <img className="provider-icon" src={provider.logo} alt={provider.name} />
                   <div className="provider-info">
                     <div className="provider-name">{provider.name}</div>
                     <div className="provider-desc">{provider.desc}</div>
