@@ -399,22 +399,18 @@ body {
   width: 50px;
   height: 50px;
   border-radius: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 22px;
-  font-weight: 800;
+  object-fit: contain;
   flex-shrink: 0;
 }
 
 .provider-card.airtel .provider-icon {
   background: linear-gradient(135deg, var(--accent-red), #ff2d3b);
-  color: white;
+  padding: 8px;
 }
 
 .provider-card.maxit .provider-icon {
   background: linear-gradient(135deg, var(--accent-orange), #ff9a2e);
-  color: white;
+  padding: 8px;
 }
 
 .provider-info {
