@@ -1,291 +1,243 @@
-@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap');
+/* ============================================
+   STATUS / SUCCESS PAGE — UNIFIED
+   ============================================ */
 
-/* ── Root ────────────────────────────────────────── */
-.st-root {
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap');
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --status-text: #ffffff;
+  --status-text-secondary: rgba(255, 255, 255, 0.65);
+  --status-text-muted: rgba(255, 255, 255, 0.35);
+  --status-card-bg: rgba(255, 255, 255, 0.06);
+  --status-card-border: rgba(255, 255, 255, 0.1);
+  --success-green: #27ae60;
+}
+
+body {
+  font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* ── PAGE ── */
+.status-page {
   min-height: 100vh;
-  background: linear-gradient(160deg, #8b0000 0%, #c0001a 40%, #e8001f 75%, #900016 100%);
-  font-family: 'DM Sans', sans-serif;
-  color: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
   position: relative;
   overflow: hidden;
-  display: flex;
-  flex-direction: column;
 }
 
-.st-bg-blob {
-  position: fixed;
-  border-radius: 50%;
-  filter: blur(90px);
-  pointer-events: none;
-  z-index: 0;
-}
-.st-bg-blob-1 {
-  width: 400px; height: 400px;
-  background: rgba(255,100,0,0.2);
-  top: -100px; right: -100px;
-}
-.st-bg-blob-2 {
-  width: 350px; height: 350px;
-  background: rgba(120,0,0,0.4);
-  bottom: -80px; left: -80px;
+/* Airtel gradient */
+.status-page.airtel {
+  background: linear-gradient(160deg, #1a0000 0%, #0d0d0d 40%, #0a0a0a 100%);
 }
 
-/* ── Content wrapper ─────────────────────────────── */
-.st-content {
-  position: relative;
-  z-index: 5;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 0 20px 40px;
-  max-width: 420px;
-  margin: 0 auto;
-  width: 100%;
+/* MaxIt gradient */
+.status-page.maxit {
+  background: linear-gradient(160deg, #1a0d00 0%, #0d0d0d 40%, #0a0a0a 100%);
 }
 
-/* ── Top bar ─────────────────────────────────────── */
-.st-topbar {
-  width: 100%;
-  display: flex;
-  justify-content: center;
-  padding: 20px 0 8px;
-}
-
-.st-logo {
-  height: 30px;
-  filter: brightness(0) invert(1);
-  opacity: 0.9;
-}
-
-/* ── Success icon ────────────────────────────────── */
-.st-icon-wrap {
-  position: relative;
-  width: 110px;
-  height: 110px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 20px 0 16px;
-}
-
-.st-icon-ring {
+/* Glow orbs */
+.status-page::before {
+  content: '';
   position: absolute;
+  width: 300px; height: 300px;
   border-radius: 50%;
-  border: 2px solid rgba(255,255,255,0.15);
-  animation: st-ring-pulse 2.5s ease-in-out infinite;
+  filter: blur(100px);
+  opacity: 0.2;
+  top: -80px; left: -80px;
+  pointer-events: none;
 }
 
-.st-ring-1 { width: 80px;  height: 80px;  animation-delay: 0s; }
-.st-ring-2 { width: 96px;  height: 96px;  animation-delay: 0.3s; }
-.st-ring-3 { width: 110px; height: 110px; animation-delay: 0.6s; }
+.status-page.airtel::before { background: #e30613; }
+.status-page.maxit::before { background: #FC7A00; }
 
-@keyframes st-ring-pulse {
-  0%, 100% { opacity: 0.2; transform: scale(1); }
-  50%       { opacity: 0.5; transform: scale(1.04); }
+/* ── SUCCESS ICON ── */
+.status-icon-wrap {
+  position: relative;
+  width: 96px;
+  height: 96px;
+  margin-bottom: 28px;
 }
 
-.st-icon-circle {
-  width: 68px;
-  height: 68px;
-  background: linear-gradient(135deg, #ff6b35, #ff2d55);
+.status-icon-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid;
+  animation: ringPulse 2s ease-in-out infinite;
+}
+
+.status-page.airtel .status-icon-ring { border-color: rgba(227, 6, 19, 0.3); }
+.status-page.maxit .status-icon-ring { border-color: rgba(252, 122, 0, 0.3); }
+
+.status-icon-ring:nth-child(2) {
+  inset: -10px;
+  animation-delay: 0.5s;
+  opacity: 0.5;
+}
+
+.status-icon-ring:nth-child(3) {
+  inset: -20px;
+  animation-delay: 1s;
+  opacity: 0.3;
+}
+
+@keyframes ringPulse {
+  0%, 100% { transform: scale(1); opacity: 0.3; }
+  50% { transform: scale(1.06); opacity: 0.6; }
+}
+
+.status-icon-circle {
+  position: absolute;
+  inset: 0;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 8px 32px rgba(255,45,85,0.5), 0 0 0 4px rgba(255,255,255,0.15);
-  animation: st-icon-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  animation: popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-@keyframes st-icon-pop {
-  from { transform: scale(0); opacity: 0; }
-  to   { transform: scale(1); opacity: 1; }
+.status-page.airtel .status-icon-circle {
+  background: linear-gradient(135deg, #e30613, #ff2d3b);
 }
 
-/* ── Congrats text ───────────────────────────────── */
-.st-congrats-label {
-  font-size: 20px;
-  font-weight: 700;
-  margin-bottom: 4px;
-  animation: st-fade-up 0.5s 0.2s both;
+.status-page.maxit .status-icon-circle {
+  background: linear-gradient(135deg, #FC7A00, #ff9a2e);
 }
 
-.st-title {
+@keyframes popIn {
+  from { transform: scale(0); }
+  to { transform: scale(1); }
+}
+
+.status-icon-circle .check {
+  font-size: 42px;
+  color: white;
+}
+
+/* ── TEXT ── */
+.status-title {
   font-family: 'Syne', sans-serif;
-  font-size: 22px;
+  font-size: 26px;
   font-weight: 800;
-  margin: 0 0 24px;
-  text-align: center;
-  opacity: 0.9;
-  animation: st-fade-up 0.5s 0.3s both;
-}
-
-@keyframes st-fade-up {
-  from { transform: translateY(16px); opacity: 0; }
-  to   { transform: translateY(0);    opacity: 1; }
-}
-
-/* ── Credit card ─────────────────────────────────── */
-.st-credit-card {
-  width: 100%;
-  background: #fff;
-  color: #1a0000;
-  border-radius: 24px;
-  padding: 24px 22px;
-  margin-bottom: 16px;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,255,255,0.1);
-  animation: st-card-in 0.6s 0.15s cubic-bezier(0.34, 1.56, 0.64, 1) both;
-}
-
-@keyframes st-card-in {
-  from { transform: translateY(40px) scale(0.95); opacity: 0; }
-  to   { transform: translateY(0) scale(1); opacity: 1; }
-}
-
-.st-credit-top {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 16px;
-}
-
-.st-credit-icon {
-  font-size: 20px;
-}
-
-.st-credit-tag {
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  background: linear-gradient(90deg, #c0001a, #e8001f);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.st-credit-data {
-  text-align: center;
+  color: var(--status-text);
   margin-bottom: 8px;
-}
-
-.st-credit-amount {
-  font-family: 'Syne', sans-serif;
-  font-size: 56px;
-  font-weight: 800;
-  line-height: 1;
-  background: linear-gradient(135deg, #c0001a, #ff3a3a);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  letter-spacing: -2px;
-}
-
-.st-credit-msg {
   text-align: center;
-  font-size: 13px;
-  color: #666;
+  animation: fadeUp 0.5s ease 0.2s both;
+}
+
+.status-subtitle {
+  font-size: 14px;
+  color: var(--status-text-secondary);
+  text-align: center;
+  margin-bottom: 28px;
+  max-width: 300px;
   line-height: 1.5;
-  margin: 0 0 16px;
+  animation: fadeUp 0.5s ease 0.3s both;
 }
 
-.st-credit-divider {
-  height: 1px;
-  background: #f0e0e0;
-  margin: 0 0 14px;
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-.st-credit-detail-row {
+/* ── INFO CARD ── */
+.status-info-card {
+  width: 100%;
+  max-width: 360px;
+  background: var(--status-card-bg);
+  border: 1px solid var(--status-card-border);
+  border-radius: 18px;
+  padding: 20px;
+  backdrop-filter: blur(10px);
+  margin-bottom: 24px;
+  animation: cardIn 0.5s ease 0.4s both;
+}
+
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(16px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.status-info-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
+  padding: 10px 0;
 }
 
-.st-credit-detail-label {
+.status-info-row + .status-info-row {
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.status-info-label {
   font-size: 12px;
-  color: #999;
-  font-weight: 500;
+  color: var(--status-text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.5px;
 }
 
-.st-credit-detail-val {
+.status-info-value {
   font-size: 14px;
+  font-weight: 600;
+  color: var(--status-text);
+}
+
+.status-info-value.provider-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 12px;
   font-weight: 700;
-  color: #1a0000;
 }
 
-.st-status-active {
-  color: #16a34a !important;
+.status-page.airtel .status-info-value.provider-badge {
+  background: rgba(227, 6, 19, 0.15);
+  color: #ff4d5a;
 }
 
-/* ── Info box ────────────────────────────────────── */
-.st-info-box {
+.status-page.maxit .status-info-value.provider-badge {
+  background: rgba(252, 122, 0, 0.15);
+  color: #ffaa44;
+}
+
+/* ── HOME BUTTON ── */
+.status-home-btn {
   width: 100%;
-  background: rgba(0,0,0,0.2);
-  border: 1px solid rgba(255,255,255,0.12);
-  border-radius: 16px;
+  max-width: 360px;
   padding: 16px;
-  display: flex;
-  gap: 12px;
-  align-items: flex-start;
-  margin-bottom: 24px;
-  animation: st-fade-up 0.5s 0.4s both;
-  backdrop-filter: blur(8px);
-}
-
-.st-info-icon {
-  font-size: 22px;
-  flex-shrink: 0;
-}
-
-.st-info-text {
-  font-size: 13px;
-  line-height: 1.5;
-  opacity: 0.85;
-  margin: 0;
-}
-
-/* ── Home button ─────────────────────────────────── */
-.st-home-btn {
-  width: 100%;
-  background: rgba(255,255,255,0.12);
-  border: 1.5px solid rgba(255,255,255,0.25);
+  border: 1px solid var(--status-card-border);
   border-radius: 14px;
-  color: #fff;
-  font-family: 'DM Sans', sans-serif;
+  background: var(--status-card-bg);
+  color: var(--status-text);
   font-size: 15px;
   font-weight: 600;
-  padding: 16px;
+  font-family: 'DM Sans', sans-serif;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  transition: background 0.2s, border-color 0.2s, transform 0.15s;
-  margin-bottom: 24px;
-  letter-spacing: 0.01em;
-  animation: st-fade-up 0.5s 0.5s both;
-}
-
-.st-home-btn:hover {
-  background: rgba(255,255,255,0.2);
-  border-color: rgba(255,255,255,0.4);
-  transform: translateY(-2px);
-}
-
-.st-home-btn:active {
-  transform: scale(0.98);
-}
-
-.st-home-icon {
-  font-size: 18px;
-}
-
-/* ── Footer ──────────────────────────────────────── */
-.st-footer-text {
-  font-size: 11px;
-  opacity: 0.35;
+  transition: all 0.25s ease;
+  animation: fadeUp 0.5s ease 0.5s both;
   text-align: center;
-  margin: 0;
+}
+
+.status-home-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* ── FOOTER ── */
+.status-footer {
+  margin-top: 32px;
+  text-align: center;
+  animation: fadeUp 0.5s ease 0.6s both;
+}
+
+.status-footer p {
+  font-size: 11px;
+  color: var(--status-text-muted);
 }
