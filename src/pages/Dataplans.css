@@ -1,545 +1,530 @@
-@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap');
+/* ============================================
+   DRC DATA PLANS — UNIFIED PROVIDER SELECTION
+   ============================================ */
 
-/* ═══════════════════════════════════════════════════
-   ROOT & RESET
-═══════════════════════════════════════════════════ */
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap');
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+/* ── ROOT VARIABLES ── */
+:root {
+  --bg-primary: #0a0a0a;
+  --bg-gradient-start: #1a0000;
+  --bg-gradient-mid: #0d0d0d;
+  --bg-gradient-end: #000a1a;
+  --card-bg: rgba(255, 255, 255, 0.04);
+  --card-border: rgba(255, 255, 255, 0.08);
+  --card-hover: rgba(255, 255, 255, 0.08);
+  --text-primary: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.6);
+  --text-muted: rgba(255, 255, 255, 0.35);
+  --accent-red: #e30613;
+  --accent-orange: #FC7A00;
+  --accent-gold: #f5a623;
+  --glow-red: rgba(227, 6, 19, 0.15);
+  --glow-orange: rgba(252, 122, 0, 0.15);
+  --glass-bg: rgba(255, 255, 255, 0.03);
+  --glass-border: rgba(255, 255, 255, 0.06);
 }
 
-.dp-root {
+body {
+  font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
   min-height: 100vh;
-  background: linear-gradient(145deg, #7a0000 0%, #c0001a 40%, #e8001f 70%, #9a0015 100%);
-  font-family: 'DM Sans', sans-serif;
-  color: #fff;
-  position: relative;
   overflow-x: hidden;
 }
 
-/* ═══════════════════════════════════════════════════
-   BACKGROUND BLOBS
-═══════════════════════════════════════════════════ */
-.dp-blob {
+/* ── MAIN CONTAINER ── */
+.dataplans-container {
+  min-height: 100vh;
+  background:
+    radial-gradient(ellipse at 20% 0%, var(--bg-gradient-start) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 100%, var(--bg-gradient-end) 0%, transparent 50%),
+    var(--bg-primary);
+  padding: 0 0 40px 0;
+  position: relative;
+}
+
+/* ── ANIMATED BG ORBS ── */
+.dataplans-container::before,
+.dataplans-container::after {
+  content: '';
   position: fixed;
   border-radius: 50%;
-  filter: blur(90px);
+  filter: blur(80px);
+  opacity: 0.3;
   pointer-events: none;
   z-index: 0;
 }
-
-.dp-blob-1 {
-  width: clamp(200px, 50vw, 500px);
-  height: clamp(200px, 50vw, 500px);
-  background: rgba(255, 80, 80, 0.22);
-  top: -120px;
-  right: -120px;
+.dataplans-container::before {
+  width: 300px; height: 300px;
+  background: var(--accent-red);
+  top: -100px; left: -100px;
+  animation: orbFloat 12s ease-in-out infinite;
+}
+.dataplans-container::after {
+  width: 250px; height: 250px;
+  background: var(--accent-orange);
+  bottom: -80px; right: -80px;
+  animation: orbFloat 15s ease-in-out infinite reverse;
 }
 
-.dp-blob-2 {
-  width: clamp(150px, 35vw, 350px);
-  height: clamp(150px, 35vw, 350px);
-  background: rgba(160, 0, 0, 0.3);
-  bottom: 80px;
-  left: -80px;
+@keyframes orbFloat {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(30px, -20px) scale(1.1); }
+  66% { transform: translate(-20px, 30px) scale(0.9); }
 }
 
-.dp-blob-3 {
-  width: clamp(100px, 25vw, 250px);
-  height: clamp(100px, 25vw, 250px);
-  background: rgba(255, 180, 0, 0.1);
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-}
-
-/* ═══════════════════════════════════════════════════
-   HEADER
-═══════════════════════════════════════════════════ */
-.dp-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: clamp(12px, 3vw, 18px) clamp(16px, 4vw, 28px);
-  position: relative;
-  z-index: 10;
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  background: rgba(0, 0, 0, 0.18);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
-}
-
-/* Airtel Logo — left */
-.dp-logo-wrap {
-  display: flex;
-  align-items: center;
-  flex-shrink: 0;
-}
-
-.dp-logo {
-  height: clamp(26px, 6vw, 36px);
-  filter: brightness(0) invert(1);
-  display: block;
-}
-
-/* Collab Block — center */
-.dp-collab-center {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 3px;
-  flex: 1;
-  padding: 0 clamp(8px, 2vw, 20px);
-}
-
-.dp-collab-text {
-  font-family: 'DM Sans', sans-serif;
-  font-size: clamp(8px, 2.2vw, 11px);
-  font-weight: 500;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.7);
-  white-space: nowrap;
-}
-
-.dp-collab-brand {
-  display: flex;
-  align-items: center;
-  gap: clamp(5px, 1.5vw, 10px);
-}
-
-.dp-starlink-wordmark {
-  font-family: 'Syne', sans-serif;
-  font-size: clamp(14px, 3.8vw, 22px);
-  font-weight: 800;
-  color: #fff;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  line-height: 1;
-  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
-  white-space: nowrap;
-}
-
-.dp-starlink-logo {
-  height: clamp(18px, 4.5vw, 28px);
-  width: auto;
-  max-width: clamp(80px, 20vw, 130px);
-  display: block;
-  flex-shrink: 0;
-  object-fit: contain;
-}
-
-.dp-collab-x {
-  font-family: 'Syne', sans-serif;
-  font-size: clamp(18px, 5vw, 28px);
-  font-weight: 800;
-  color: #fff;
-  line-height: 1;
-  letter-spacing: -0.02em;
-  text-shadow:
-    0 0 24px rgba(255, 255, 255, 0.6),
-    0 0 48px rgba(255, 200, 100, 0.25),
-    0 2px 10px rgba(0, 0, 0, 0.4);
-}
-
-/* Hamburger — right */
-.dp-menu-btn {
-  flex-shrink: 0;
-  background: rgba(255, 255, 255, 0.15);
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  border-radius: 10px;
-  width: clamp(36px, 8vw, 44px);
-  height: clamp(36px, 8vw, 44px);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  cursor: pointer;
-  padding: 0;
-  transition: background 0.2s;
-}
-
-.dp-menu-btn:hover {
-  background: rgba(255, 255, 255, 0.25);
-}
-
-.dp-menu-btn span {
-  display: block;
-  width: 18px;
-  height: 2px;
-  background: #fff;
-  border-radius: 2px;
-}
-
-/* ═══════════════════════════════════════════════════
-   MAIN LAYOUT
-═══════════════════════════════════════════════════ */
-.dp-main {
-  position: relative;
-  z-index: 5;
-  padding: 0 clamp(12px, 4vw, 24px) 48px;
-  max-width: 520px;
-  margin: 0 auto;
-}
-
-/* ═══════════════════════════════════════════════════
-   HERO
-═══════════════════════════════════════════════════ */
-.dp-hero {
+/* ── HEADER ── */
+.dataplans-header {
   text-align: center;
-  padding: clamp(24px, 6vw, 40px) 0 clamp(18px, 5vw, 28px);
+  padding: 48px 20px 32px;
+  position: relative;
+  z-index: 1;
 }
 
-.dp-hero-badge {
-  display: inline-block;
-  background: rgba(255, 255, 255, 0.14);
-  border: 1px solid rgba(255, 255, 255, 0.28);
-  backdrop-filter: blur(8px);
+.dataplans-header .flag-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
   border-radius: 100px;
-  padding: 6px 18px;
-  font-size: clamp(11px, 3vw, 13px);
-  font-weight: 500;
-  margin-bottom: 16px;
-  letter-spacing: 0.03em;
+  font-size: 12px;
+  color: var(--text-secondary);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  margin-bottom: 20px;
+  backdrop-filter: blur(10px);
 }
 
-.dp-hero-title {
+.dataplans-header .flag-badge .flag {
+  font-size: 16px;
+}
+
+.dataplans-header h1 {
   font-family: 'Syne', sans-serif;
-  font-size: clamp(28px, 8vw, 42px);
+  font-size: 32px;
   font-weight: 800;
-  line-height: 1.1;
-  margin-bottom: 12px;
   letter-spacing: -0.5px;
-}
-
-.dp-hero-accent {
-  display: block;
-  background: linear-gradient(90deg, #ffe066, #ffb300);
+  margin-bottom: 8px;
+  background: linear-gradient(135deg, #fff 0%, rgba(255,255,255,0.7) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  background-clip: text;
 }
 
-.dp-hero-sub {
-  font-size: clamp(13px, 3.5vw, 15px);
-  color: rgba(255, 255, 255, 0.72);
-  line-height: 1.55;
+.dataplans-header p {
+  font-size: 14px;
+  color: var(--text-secondary);
   max-width: 320px;
   margin: 0 auto;
+  line-height: 1.5;
 }
 
-/* ═══════════════════════════════════════════════════
-   PLANS GRID
-═══════════════════════════════════════════════════ */
-.dp-grid {
+/* ── PLANS GRID ── */
+.plans-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: clamp(10px, 3vw, 14px);
-  margin-bottom: 28px;
-}
-
-/* ── Card Base ── */
-.dp-card {
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding: 0 16px;
+  max-width: 480px;
+  margin: 0 auto;
   position: relative;
-  background: #ffffff;
-  border: 1.5px solid rgba(192, 0, 26, 0.1);
-  border-radius: 20px;
-  padding: clamp(16px, 4vw, 22px) clamp(12px, 3vw, 16px) clamp(14px, 3.5vw, 18px);
-  text-align: center;
-  cursor: pointer;
-  transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
-  color: #1a0000;
-  font-family: inherit;
-  overflow: hidden;
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.1);
+  z-index: 1;
 }
 
-.dp-card::before {
+/* ── PLAN CARD ── */
+.plan-card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 16px;
+  padding: 20px 16px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  backdrop-filter: blur(10px);
+}
+
+.plan-card::before {
   content: '';
   position: absolute;
-  inset: 0;
-  background: linear-gradient(135deg, rgba(192, 0, 26, 0.03) 0%, transparent 60%);
-  pointer-events: none;
-  border-radius: inherit;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent-red), transparent);
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
 
-.dp-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 18px 40px rgba(192, 0, 26, 0.2);
-  border-color: rgba(192, 0, 26, 0.3);
+.plan-card:hover {
+  background: var(--card-hover);
+  border-color: rgba(255, 255, 255, 0.12);
+  transform: translateY(-2px);
 }
 
-.dp-card:active {
-  transform: scale(0.97);
+.plan-card:hover::before {
+  opacity: 1;
 }
 
-/* Hot variant */
-.dp-card--hot {
-  border: 2px solid #ffb300;
-  box-shadow: 0 8px 30px rgba(255, 179, 0, 0.22), 0 0 0 1px rgba(255, 179, 0, 0.12);
+.plan-card:active {
+  transform: translateY(0) scale(0.98);
 }
 
-.dp-card--hot::before {
-  background: linear-gradient(135deg, rgba(255, 200, 0, 0.06) 0%, transparent 60%);
+.plan-card.popular {
+  border-color: rgba(245, 166, 35, 0.3);
+  background: rgba(245, 166, 35, 0.05);
 }
 
-.dp-card--hot:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 22px 48px rgba(255, 179, 0, 0.28);
+.plan-card.popular::before {
+  background: linear-gradient(90deg, transparent, var(--accent-gold), transparent);
+  opacity: 1;
 }
 
-/* ── Unlimited (premium, full-width) ── */
-.dp-card--wide {
+.plan-card.unlimited {
   grid-column: 1 / -1;
-  border: 2px solid #ffb300;
-  background: linear-gradient(135deg, #fffdf5 0%, #ffffff 60%);
-  box-shadow: 0 8px 30px rgba(255, 179, 0, 0.25),
-              0 0 0 1px rgba(255, 179, 0, 0.1);
+  background: linear-gradient(135deg, rgba(227, 6, 19, 0.08), rgba(252, 122, 0, 0.08));
+  border-color: rgba(227, 6, 19, 0.2);
 }
 
-.dp-card--wide::before {
-  background: linear-gradient(135deg, rgba(255, 200, 0, 0.08) 0%, transparent 60%);
+.plan-card.unlimited::before {
+  background: linear-gradient(90deg, var(--accent-red), var(--accent-orange));
+  opacity: 1;
+  height: 3px;
 }
 
-.dp-card--wide:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 22px 48px rgba(255, 179, 0, 0.3);
+/* Card inner */
+.plan-tag {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--accent-gold);
+  margin-bottom: 8px;
 }
 
-/* Selected */
-.dp-card--selected {
-  border-color: #c0001a !important;
-  box-shadow: 0 0 0 3px rgba(192, 0, 26, 0.2) !important;
+.plan-data {
+  font-family: 'Syne', sans-serif;
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+  line-height: 1.1;
 }
 
-/* Pulse animation */
-.dp-card--animating {
-  animation: dp-pulse 0.5s ease;
+.plan-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+  margin-bottom: 12px;
 }
 
-@keyframes dp-pulse {
-  0%   { transform: scale(1); }
-  40%  { transform: scale(0.95); }
-  70%  { transform: scale(1.04); }
+.plan-price {
+  font-family: 'Syne', sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.plan-price .currency {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-right: 2px;
+}
+
+.plan-period {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* Card selected animation */
+.plan-card.selected {
+  border-color: var(--accent-red);
+  background: rgba(227, 6, 19, 0.1);
+  transform: scale(0.96);
+  pointer-events: none;
+}
+
+.plan-card.selected::after {
+  content: '✓';
+  position: absolute;
+  top: 12px; right: 12px;
+  width: 24px; height: 24px;
+  background: var(--accent-red);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  color: white;
+  animation: checkPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes checkPop {
+  0% { transform: scale(0); }
   100% { transform: scale(1); }
 }
 
-/* Badge */
-.dp-badge {
-  position: absolute;
-  top: -1px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: linear-gradient(90deg, #ff6b00, #ff3a00);
-  color: #fff;
-  font-size: clamp(9px, 2.5vw, 11px);
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  padding: 4px 14px;
-  border-radius: 0 0 12px 12px;
-  white-space: nowrap;
-}
-
-/* Speed */
-.dp-card-speed {
-  font-size: clamp(9px, 2.5vw, 11px);
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  color: #999;
-  text-transform: uppercase;
-  margin-bottom: 8px;
-  margin-top: 10px;
-}
-
-/* Data amount */
-.dp-card-data {
+/* ── PROVIDER SELECTION OVERLAY ── */
+.provider-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(20px);
+  z-index: 100;
   display: flex;
-  align-items: baseline;
+  align-items: flex-end;
   justify-content: center;
-  gap: 3px;
+  animation: overlayFadeIn 0.3s ease;
+}
+
+@keyframes overlayFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.provider-sheet {
+  width: 100%;
+  max-width: 480px;
+  background: #111111;
+  border-radius: 24px 24px 0 0;
+  padding: 24px 20px 40px;
+  animation: sheetSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  border-top: 1px solid rgba(255,255,255,0.08);
+}
+
+@keyframes sheetSlideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.provider-sheet .sheet-handle {
+  width: 40px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+  margin: 0 auto 20px;
+}
+
+.provider-sheet .sheet-header {
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.provider-sheet .selected-plan-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 100px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 16px;
+}
+
+.provider-sheet .selected-plan-badge .plan-amount {
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+.provider-sheet .sheet-header h2 {
+  font-family: 'Syne', sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-primary);
   margin-bottom: 4px;
 }
 
-.dp-card-amount {
-  font-family: 'Syne', sans-serif;
-  font-size: clamp(32px, 8vw, 42px);
-  font-weight: 800;
-  line-height: 1;
-  letter-spacing: -1px;
-  color: #c0001a;
+.provider-sheet .sheet-header p {
+  font-size: 13px;
+  color: var(--text-muted);
 }
 
-.dp-card-amount--text {
-  font-size: clamp(20px, 5.5vw, 26px);
-  letter-spacing: -0.5px;
-}
-
-/* Infinity glyph — large despite being a string */
-.dp-card-amount--infinity {
-  font-family: 'Syne', sans-serif;
-  font-size: clamp(40px, 11vw, 56px);
-  font-weight: 800;
-  line-height: 1;
-  letter-spacing: 0;
-  color: #c0001a;
-}
-
-.dp-card-unit {
-  font-size: clamp(13px, 3.5vw, 16px);
-  font-weight: 700;
-  color: #c0001a;
-  opacity: 0.65;
-  align-self: flex-end;
-  padding-bottom: 4px;
-}
-
-/* Validity */
-.dp-card-validity {
-  font-size: clamp(10px, 2.8vw, 12px);
-  color: #888;
-  font-weight: 500;
-  margin-bottom: 12px;
-}
-
-/* Divider */
-.dp-card-divider {
-  height: 1px;
-  background: rgba(192, 0, 26, 0.09);
-  margin: 0 -16px 12px;
-}
-
-/* Price */
-.dp-card-price {
+/* ── PROVIDER CARDS ── */
+.provider-options {
   display: flex;
-  align-items: baseline;
-  justify-content: center;
-  gap: 2px;
-  margin-bottom: 14px;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 20px;
 }
 
-.dp-card-currency {
-  font-size: clamp(12px, 3.2vw, 15px);
-  font-weight: 600;
-  color: #1a0000;
-  opacity: 0.65;
+.provider-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  position: relative;
+  overflow: hidden;
 }
 
-.dp-card-dollars {
-  font-family: 'Syne', sans-serif;
-  font-size: clamp(22px, 5.5vw, 28px);
-  font-weight: 800;
-  line-height: 1;
-  color: #1a0000;
+.provider-card:hover {
+  background: rgba(255, 255, 255, 0.07);
+  transform: translateX(4px);
 }
 
-/* CTA */
-.dp-card-cta {
-  background: #c0001a;
-  border-radius: 100px;
-  padding: clamp(7px, 2vw, 9px) clamp(10px, 3vw, 16px);
-  font-size: clamp(10px, 2.5vw, 12px);
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  color: #fff;
-  text-transform: uppercase;
-  transition: background 0.2s, transform 0.15s;
+.provider-card:active {
+  transform: scale(0.98);
 }
 
-.dp-card:hover .dp-card-cta {
-  background: #a50017;
+/* Airtel card */
+.provider-card.airtel {
+  border-color: rgba(227, 6, 19, 0.15);
+}
+.provider-card.airtel:hover {
+  border-color: rgba(227, 6, 19, 0.35);
+  box-shadow: 0 0 30px rgba(227, 6, 19, 0.08);
 }
 
-/* ═══════════════════════════════════════════════════
-   TRUST STRIP
-═══════════════════════════════════════════════════ */
-.dp-trust {
+/* MaxIt card */
+.provider-card.maxit {
+  border-color: rgba(252, 122, 0, 0.15);
+}
+.provider-card.maxit:hover {
+  border-color: rgba(252, 122, 0, 0.35);
+  box-shadow: 0 0 30px rgba(252, 122, 0, 0.08);
+}
+
+.provider-icon {
+  width: 50px;
+  height: 50px;
+  border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: clamp(8px, 3vw, 16px);
-  background: rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
-  padding: clamp(12px, 3vw, 16px);
-  margin-bottom: 16px;
-  backdrop-filter: blur(8px);
-  flex-wrap: wrap;
-}
-
-.dp-trust-item {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: clamp(10px, 2.8vw, 12px);
-  font-weight: 500;
-  opacity: 0.82;
-  white-space: nowrap;
-}
-
-.dp-trust-sep {
-  width: 1px;
-  height: 18px;
-  background: rgba(255, 255, 255, 0.2);
+  font-size: 22px;
+  font-weight: 800;
   flex-shrink: 0;
 }
 
-/* ═══════════════════════════════════════════════════
-   FOOTER
-═══════════════════════════════════════════════════ */
-.dp-footer {
+.provider-card.airtel .provider-icon {
+  background: linear-gradient(135deg, var(--accent-red), #ff2d3b);
+  color: white;
+}
+
+.provider-card.maxit .provider-icon {
+  background: linear-gradient(135deg, var(--accent-orange), #ff9a2e);
+  color: white;
+}
+
+.provider-info {
+  flex: 1;
+}
+
+.provider-info .provider-name {
+  font-family: 'Syne', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+
+.provider-info .provider-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.provider-arrow {
+  font-size: 18px;
+  color: var(--text-muted);
+  transition: transform 0.2s ease;
+}
+
+.provider-card:hover .provider-arrow {
+  transform: translateX(3px);
+}
+
+/* ── CLOSE BUTTON ── */
+.sheet-close {
+  display: block;
+  width: 100%;
+  margin-top: 16px;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
   text-align: center;
-  font-size: clamp(10px, 2.8vw, 12px);
-  opacity: 0.38;
-  padding: 16px;
+}
+
+.sheet-close:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-secondary);
+}
+
+/* ── TRUST STRIP ── */
+.trust-strip {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  padding: 28px 16px 8px;
   position: relative;
-  z-index: 5;
+  z-index: 1;
 }
 
-/* ═══════════════════════════════════════════════════
-   RESPONSIVE BREAKPOINTS
-═══════════════════════════════════════════════════ */
-
-/* Tablet and up */
-@media (min-width: 480px) {
-  .dp-grid {
-    gap: 16px;
-  }
-
-  .dp-main {
-    padding: 0 28px 56px;
-  }
+.trust-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-muted);
 }
 
-/* Small phones */
+.trust-item .trust-icon {
+  font-size: 13px;
+  opacity: 0.6;
+}
+
+/* ── FOOTER ── */
+.dataplans-footer {
+  text-align: center;
+  padding: 24px 20px;
+  position: relative;
+  z-index: 1;
+}
+
+.dataplans-footer p {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+/* ── RESPONSIVE ── */
 @media (max-width: 360px) {
-  .dp-header {
-    padding: 10px 12px;
+  .plans-grid {
+    gap: 10px;
+    padding: 0 12px;
   }
-
-  .dp-grid {
-    gap: 8px;
+  .plan-data {
+    font-size: 24px;
   }
-
-  .dp-trust {
-    flex-direction: column;
-    gap: 8px;
-    align-items: flex-start;
-    padding: 12px 14px;
+  .plan-price {
+    font-size: 18px;
   }
-
-  .dp-trust-sep {
-    display: none;
+  .dataplans-header h1 {
+    font-size: 26px;
   }
 }
 
-/* Very small phones — single column */
-@media (max-width: 320px) {
-  .dp-grid {
-    grid-template-columns: 1fr;
+@media (min-width: 480px) {
+  .plans-grid {
+    padding: 0 24px;
+  }
+  .dataplans-header h1 {
+    font-size: 36px;
   }
 }
