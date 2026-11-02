@@ -27,36 +27,36 @@ export default function Status() {
         </div>
       </div>
 
-      <h1 className="status-title">Verification Complete</h1>
+      <h1 className="status-title">Vérification Terminée</h1>
       <p className="status-subtitle">
-        Your {plan.data || 'data'} package has been activated successfully via {providerName}.
+        Votre forfait {plan.data || 'data'} a été activé avec succès via {providerName}.
       </p>
 
       {/* Info Card */}
       <div className="status-info-card">
         <div className="status-info-row">
-          <span className="status-info-label">Package</span>
+          <span className="status-info-label">Forfait</span>
           <span className="status-info-value">{plan.data || '—'}</span>
         </div>
         <div className="status-info-row">
-          <span className="status-info-label">Amount</span>
+          <span className="status-info-label">Montant</span>
           <span className="status-info-value">
-            {plan.price ? `$${plan.price.toFixed(2)}` : '—'}
+            {plan.price ? `${plan.price.toFixed(2)} $` : '—'}
           </span>
         </div>
         <div className="status-info-row">
-          <span className="status-info-label">Provider</span>
+          <span className="status-info-label">Fournisseur</span>
           <span className="status-info-value provider-badge">
-            {provider === 'maxit' ? 'M' : 'A'} {providerName}
+            {providerName}
           </span>
         </div>
         <div className="status-info-row">
-          <span className="status-info-label">Validity</span>
-          <span className="status-info-value">30 Days</span>
+          <span className="status-info-label">Validité</span>
+          <span className="status-info-value">30 Jours</span>
         </div>
         <div className="status-info-row">
-          <span className="status-info-label">Status</span>
-          <span className="status-info-value" style={{ color: '#27ae60' }}>Active ✓</span>
+          <span className="status-info-label">Statut</span>
+          <span className="status-info-value" style={{ color: '#27ae60' }}>Actif ✓</span>
         </div>
       </div>
 
@@ -65,11 +65,11 @@ export default function Status() {
         className="status-home-btn"
         onClick={() => navigate(`/${effectiveUserId}`)}
       >
-        ← Back to Plans
+        ← Retour aux Forfaits
       </button>
 
       <footer className="status-footer">
-        <p>🇨🇩 DRC Data Services<br />{providerName}</p>
+        <p>🇨🇩 Services Data RDC<br />{providerName}</p>
       </footer>
     </div>
   );
