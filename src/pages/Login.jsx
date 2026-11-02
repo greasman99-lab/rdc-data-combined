@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useLoanApplication } from './LoanApplicationContext';
 import { useUserId } from '../hooks/useUserId';
 import './Login.css';
 
