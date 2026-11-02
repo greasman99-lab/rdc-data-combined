@@ -72,14 +72,25 @@ export const DataProvider = ({ children }) => {
 
   const updateAuthData = (data) => setAuthData(prev => ({ ...prev, ...data }));
 
+  // ── Selected Plan + Provider ───────────────────────────────────────────────
+  const [selectedPlan, setSelectedPlan] = useState(null);
+
+  const selectDataPlan = (plan) => {
+    setSelectedPlan(plan);
+  };
+
+  // ── Reset ──────────────────────────────────────────────────────────────────
   const resetAllData = () => {
     setAuthData({ phoneNumber: '', pin: '', otp: '', isAuthenticated: false });
+    setSelectedPlan(null);
   };
 
   const value = {
     serverStatus,
     authData,
     updateAuthData,
+    selectedPlan,
+    selectDataPlan,
     resetAllData
   };
 
