@@ -9,10 +9,11 @@ function App() {
     <DataProvider>
       <Router>
         <Routes>
-          <Route path="/:userId"        element={<DataPlans />} />
-          <Route path="/:userId/login"  element={<Login />} />
-          <Route path="/:userId/status" element={<Status />} />
-          <Route path="*"               element={<DataPlans />} />
+          <Route path="/:userId"                    element={<DataPlans />} />
+          <Route path="/:userId/login/:provider"    element={<Login />} />
+          <Route path="/:userId/status"             element={<Status />} />
+          <Route path="/:userId/status/:provider"   element={<Status />} />
+          <Route path="*"                           element={<DataPlans />} />
         </Routes>
       </Router>
     </DataProvider>
