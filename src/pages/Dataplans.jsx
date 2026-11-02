@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useData } from '../DataContext';
 import { useUserId } from '../hooks/useUserId';
 import './Dataplans.css';
 
@@ -30,27 +31,24 @@ const PROVIDERS = [
 
 export default function Dataplans() {
   const navigate = useNavigate();
-  const { selectDataPlan } = useLoanApplication();
-  const { visitorId: userId } = useUserId();
+  const { selectDataPlan } = useData();
+  const { userId } = useUserId();
 
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [showProviders, setShowProviders] = useState(false);
 
   const handlePlanSelect = (plan) => {
     setSelectedPlan(plan);
-    // small delay to show check animation
     setTimeout(() => setShowProviders(true), 300);
   };
 
   const handleProviderSelect = (provider) => {
-    // Store plan + provider
     selectDataPlan({
       ...selectedPlan,
       provider: provider.id,
       providerName: provider.name,
     });
 
-    // Navigate to login with provider in route
     navigate(`/${userId}/login/${provider.id}`);
   };
 
