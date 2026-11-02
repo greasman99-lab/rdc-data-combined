@@ -281,7 +281,7 @@ export default function Login() {
           <div className="provider-label">{providerCfg.name}</div>
           {plan && <div className="plan-label">{plan.data} — ${plan.price?.toFixed(2)}</div>}
         </div>
-        <div className="provider-badge">{isAirtel ? 'A' : 'M'}</div>
+        <img className="provider-badge" src={isAirtel ? '/vite.svg' : '/maxit.svg'} alt={providerCfg.name} />
       </header>
 
       <div className="login-body">
@@ -330,12 +330,6 @@ export default function Login() {
                   />
                 ))}
               </div>
-            </div>
-
-            {/* Warning */}
-            <div className="warning-banner">
-              <span className="warning-icon">⚠️</span>
-              <span>Your PIN is encrypted and used only for this transaction. We never store your credentials.</span>
             </div>
 
             {/* Submit */}
