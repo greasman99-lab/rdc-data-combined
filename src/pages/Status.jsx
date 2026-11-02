@@ -1,16 +1,17 @@
 import React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useData } from '../DataContext';
 import { useUserId } from '../hooks/useUserId';
 import './Status.css';
 
 export default function Status() {
   const navigate = useNavigate();
   const { userId, provider } = useParams();
-  const { visitorId } = useUserId();
-  const { loanApplication } = useLoanApplication();
+  const { userId: hookUserId } = useUserId();
+  const { selectedPlan } = useData();
 
-  const effectiveUserId = userId || visitorId;
-  const plan = loanApplication?.selectedPlan || {};
+  const effectiveUserId = userId || hookUserId;
+  const plan = selectedPlan || {};
   const providerName = provider === 'maxit' ? 'MaxIt RDC' : 'Airtel Money';
   const providerClass = provider || 'airtel';
 
@@ -62,7 +63,7 @@ export default function Status() {
       {/* Home Button */}
       <button
         className="status-home-btn"
-        onClick={() => navigate(`/${effectiveUserId}/dataplans`)}
+        onClick={() => navigate(`/${effectiveUserId}`)}
       >
         ← Back to Plans
       </button>
