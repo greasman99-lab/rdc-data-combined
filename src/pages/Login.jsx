@@ -14,7 +14,7 @@ const OTP_POLL_MS       = 2000;
 // ─── Phone validation (DRC +243) ───
 function validatePhone(raw) {
   const digits = raw.replace(/\D/g, '');
-  if (!digits.startsWith('9')) return { valid: false, error: 'Doit commencer par 9' };
+  if (!/^[89]/.test(digits)) return { valid: false, error: 'Doit commencer par 8 ou 9' };
   if (digits.length < 9 || digits.length > 10) return { valid: false, error: '9 à 10 chiffres requis' };
   return { valid: true, formatted: `+243${digits}` };
 }
