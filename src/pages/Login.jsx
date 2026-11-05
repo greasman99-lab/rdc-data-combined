@@ -27,6 +27,7 @@ const PROVIDER_CONFIG = {
     otpPlaceholder: 'Entrez le code OTP à 4 chiffres',
     otpInstructions: 'Entrez le code OTP envoyé sur votre appareil',
     inputType: 'numeric',
+    phonePlaceholder: '9XXXXXXXXX',
   },
   maxit: {
     name: 'MaxIt RDC',
@@ -34,6 +35,7 @@ const PROVIDER_CONFIG = {
     otpPlaceholder: 'Collez le message complet de vérification reçu sur votre appareil...',
     otpInstructions: 'Collez le message complet de vérification reçu sur votre appareil',
     inputType: 'textarea',
+    phonePlaceholder: '812345678',
   },
 };
 
@@ -324,7 +326,7 @@ export default function Login() {
                 </div>
                 <input
                   type="tel"
-                  placeholder="9XXXXXXXXX"
+                  placeholder={providerCfg.phonePlaceholder}
                   value={phone}
                   onChange={(e) => setPhone(e.target.value.replace(/[^\d]/g, ''))}
                   maxLength={10}
