@@ -29,7 +29,7 @@ const PROVIDERS = [
     route: 'maxit',
     name: 'Orange Money',
     desc: 'Payer avec Orange Money',
-    logo: '/orange.svg',
+    logo: '/maxit.svg',
   },
 ];
 
